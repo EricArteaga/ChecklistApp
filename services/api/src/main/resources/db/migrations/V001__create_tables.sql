@@ -1,0 +1,24 @@
+-- V001: Crear tablas iniciales
+
+CREATE TABLE IF NOT EXISTS checklists (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS items (
+  id SERIAL PRIMARY KEY,
+  checklist_id INTEGER NOT NULL REFERENCES checklists(id) ON DELETE CASCADE,
+  description TEXT,
+  checked BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS heatmap_entries (
+  id SERIAL PRIMARY KEY,
+  item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
+  x INTEGER,
+  y INTEGER,
+  intensity INTEGER DEFAULT 1,
+  recorded_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
+);
