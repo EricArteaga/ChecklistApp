@@ -10,5 +10,12 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: true
-
-# TODO: Añadir configuración adicional según sea necesario
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        default_schema: gestor_tareas
+  flyway:
+    enabled: true
+    schemas: gestor_tareas
+    baseline-on-migrate: true
+    locations: classpath:db/migration

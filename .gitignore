@@ -2,17 +2,30 @@
 node_modules/
 dist/
 build/
+.webpack/
+.expo/
 
 # Java
 **/build/
 **/.gradle/
 *.jar
 *.war
+target/
+*.class
+*.log
+
 
 # Android
+android/.gradle/
+android/build/
+android/app/build/
 *.keystore
 .gradle/
 /.idea/
+
+# Base de datos
+*.db
+*.sqlite
 
 # IDEs
 /.vscode/
@@ -32,3 +45,6 @@ PROMPT.md
 .env
 .vscode
 settings.json
+AGENTS.md
+.opencode
+context

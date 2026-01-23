@@ -11,7 +11,7 @@ export default function Checklist() { // muestra una lista estática como placeh
       <ul>
         {/* renderiza cada checklist con un marcador de items pendiente */}
         {placeholder.map(c => (
-          <li key={c.id}>
+          <li key={c.id}> {/* key única para React's diffing algorithm */}
             {c.title} — <em>TODO: mostrar items</em>
             </li> 
           

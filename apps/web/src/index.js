@@ -1,13 +1,10 @@
 import React from 'react' // núcleo de React necesario para JSX
-import { createRoot } from 'react-dom/client' // API moderna para hidratar el root (importada pero no usada abajo)
+import { createRoot } from 'react-dom/client' // API moderna para hidratar el root
 import App from './app/App' // componente raíz de la aplicación
 
 // Creación del root y renderizado de la aplicación.
-// Nota: se importó `createRoot` arriba; sin embargo el código usa `ReactDOM.createRoot`,
-// lo que puede ser una inconsistencia en la referencia a la API de `react-dom`.
-const root = ReactDOM.createRoot(
-    document.getElementById('root')
-);
+const container = document.getElementById('root'); // obtiene el elemento DOM donde se montará la app
+const root = createRoot(container); // crea el root de React para el contenedor
 
 root.render(
     <React.StrictMode>
