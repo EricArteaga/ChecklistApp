@@ -1,4 +1,4 @@
-package com.example.checklistapp.repository;
+package com.example.checklistapp.checklist;
 
 import org.springframework.stereotype.Repository;
 
