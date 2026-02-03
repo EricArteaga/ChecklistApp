@@ -45,6 +45,11 @@ PROMPT.md
 .env
 .vscode
 settings.json
+PLAN_PROYECTO.md
+UI-IMPROVEMENTS.md
+
+# IA
 AGENTS.md
 .opencode
 context
+.claude
