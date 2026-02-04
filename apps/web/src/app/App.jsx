@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react' // Importa hooks de React para manejo de estado y efectos secundarios
 import Checklist from '../features/checklist/Checklist' // Componente para gestión de checklists
 import Heatmap from '../features/heatmap/Heatmap' // Componente para visualización de actividad
+import sprite from '../../../../packages/lib/sprite.svg'  // Importa el sprite SVG para iconos
 
 // Configuración de pestañas de navegación disponibles en la aplicación
 const tabs = [
@@ -31,9 +32,9 @@ export default function App() {
             {/* Sección de branding con logo y título */}
             <div className="flex items-center gap-3 animate-fade-in">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
+                <svg className="w-10 h-10" fill="none" stroke="currentColor">
+                  <use href={`${sprite}#icon-checklist`} />
+                </svg>               
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground ">
@@ -44,7 +45,7 @@ export default function App() {
             </div>
 
             {/* Botón para cambiar de tema */}
-            <div className='flex items-center gap-1'>
+            <div className='flex items-center '>
               <button
                 onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
                 className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"

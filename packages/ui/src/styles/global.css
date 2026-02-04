@@ -2,28 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+
 @layer base {
   :root {
-    --background: 210 20% 98%;    
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 174 86% 45%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 174 86% 45%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 174 86% 45%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
   }
 
   * {
@@ -38,58 +19,58 @@
 
 .light {
   /* Light mode variables (default) */
-  --background: 210 20% 98%;    
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 199 89% 48%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 174 86% 45%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 174 86% 45%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 174 86% 45%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 221.2 83.2% 53.3%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340,75%55%;
+  --background: hsl(210, 20%, 98%);    
+  --foreground: hsl(222, 47%, 11%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(222.2, 84%, 4.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(222.2, 84%, 4.9%);
+  --primary: hsl(199, 89%, 48%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(174, 86%, 45%);
+  --secondary-foreground: hsl(222.2, 47.4%, 11.2%);
+  --muted: hsl(174, 86%, 45%);
+  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
+  --accent: hsl(174, 86%, 45%);
+  --accent-foreground: hsl(222.2, 47.4%, 11.2%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --ring: hsl(221.2, 83.2%, 53.3%);
+  --chart-1: hsl(220, 70%, 50%);
+  --chart-2: hsl(160, 60%, 45%);
+  --chart-3: hsl(30, 80%, 55%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340,75%,55%);
 }
 
 /* Dark mode support */
 .dark {
-  --background: 222 20% 12%;
-  --foreground: 210 40% 98%;
-  --card: 222 25% 18%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 20% 12%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 199 89% 55%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 174 86% 50%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 174 86% 50%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 174 86% 50%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217 19% 27%;
-  --input: 174 86% 50%;
-  --ring: 224.3 76.3% 48%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  --background: hsl(222, 20%, 12%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 25%, 18%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222, 20%, 12%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(199, 89%, 55%);
+  --primary-foreground: hsl(222.2, 47.4%, 11.2%);
+  --secondary: hsl(174, 86%, 50%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --muted: hsl(174, 86%, 50%);
+  --muted-foreground: hsl(215.4, 20.2%, 65.1%);
+  --accent: hsl(174, 86%, 50%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 19%, 27%);
+  --input: hsl(174, 86%, 50%);
+  --ring: hsl(224.3, 76.3%, 48%);
+  --chart-1: hsl(220, 70%, 50%);
+  --chart-2: hsl(160, 60%, 45%);
+  --chart-3: hsl(30, 80%, 55%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340,75%,55%);
 }
 
 /* Custom animations */
@@ -139,6 +120,9 @@
 }
 
 /* Focus visible styles for better accessibility */
+*{
+  @apply transition-colors duration-500 ease-in-out;
+}
 *:focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
