@@ -5,6 +5,111 @@
 
 @layer base {
   :root {
+    /* ------------------------------------------
+       TEMA CLARO (LIGHT) 
+       ------------------------------------------ */
+    
+    /* Fondo: Tu blanco grisáceo (#dcdfe0) */
+    --background: 220 223 224;
+    
+    /* Texto: Azul casi negro para máximo contraste */
+    --foreground: 15 23 42; 
+
+    /* Tarjetas: Blanco puro para elevar sobre el fondo gris */
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+
+    /* Popovers: Igual que las tarjetas */
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+
+    /* Primary: Tu Azul Oscuro (#326cc3) */
+    --primary: 50 108 195;
+    --primary-foreground: 255 255 255;
+
+    /* Secondary: Tu Azul Claro (#55a2d2) */
+    --secondary: 85 162 210;
+    --secondary-foreground: 255 255 255;
+
+    /* Muted: Gris suave para elementos inactivos */
+    --muted: 226 232 240;
+    /* Muted Foreground: Tu color Gris base (#8d929b) */
+    --muted-foreground: 141 146 155;
+
+    /* Accent: Tu Azul Verdoso del logo (#3cc1a2) */
+    --accent: 60 193 162;
+    --accent-foreground: 255 255 255;
+
+    /* Destructive: Rojo para alertas y eliminar */
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    /* Bordes e Inputs: Gris neutro armonizado */
+    --border: 203 213 225;
+    --input: 203 213 225;
+    
+    /* Ring: Azul principal para foco de accesibilidad */
+    --ring: 50 108 195;
+    
+    /* Gráficos y Visualización */
+    --chart-1: 50 108 195; /* Azul oscuro */
+    --chart-2: 60 193 162; /* Azul verdoso */
+    --chart-3: 85 162 210; /* Azul claro */
+    --chart-4: 141 146 155; /* Gris */
+    --chart-5: 30 41 59;    /* Azul noche */
+    
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* ------------------------------------------
+       TEMA OSCURO (DARK) 
+       ------------------------------------------ */
+    
+    /* Fondo: Azul noche profundo (deriva del logo) */
+    --background: 15 23 42;
+    
+    /* Texto: Tu blanco grisáceo (#dcdfe0) */
+    --foreground: 220 223 224;
+
+    /* Tarjetas: Un tono más claro que el fondo para dar profundidad */
+    --card: 30 41 59;
+    --card-foreground: 220 223 224;
+
+    --popover: 30 41 59;
+    --popover-foreground: 220 223 224;
+
+    /* Primary: Usamos el Azul Claro (#55a2d2) para mejor brillo en oscuro */
+    --primary: 85 162 210;
+    --primary-foreground: 15 23 42;
+
+    /* Secondary: El Azul Oscuro se vuelve secundario */
+    --secondary: 50 108 195;
+    --secondary-foreground: 255 255 255;
+
+    /* Muted: Tonos oscuros apagados */
+    --muted: 51 65 85;
+    --muted-foreground: 141 146 155;
+
+    /* Accent: Tu Azul Verdoso se mantiene como detalle vibrante */
+    --accent: 60 193 162;
+    --accent-foreground: 15 23 42;
+
+    --destructive: 127 29 29;
+    --destructive-foreground: 220 223 224;
+
+    /* Bordes: Más oscuros para no generar ruido visual */
+    --border: 51 65 85;
+    --input: 51 65 85;
+    
+    --ring: 85 162 210;
+
+    /* Gráficos ajustados para fondo oscuro */
+    --chart-1: 85 162 210;
+    --chart-2: 60 193 162;
+    --chart-3: 50 108 195;
+    --chart-4: 148 163 184;
+    --chart-5: 203 213 225;
   }
 
   * {
@@ -15,62 +120,6 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-}
-
-.light {
-  /* Light mode variables (default) */
-  --background: hsl(210, 20%, 98%);    
-  --foreground: hsl(222, 47%, 11%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(222.2, 84%, 4.9%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(222.2, 84%, 4.9%);
-  --primary: hsl(199, 89%, 48%);
-  --primary-foreground: hsl(210, 40%, 98%);
-  --secondary: hsl(174, 86%, 45%);
-  --secondary-foreground: hsl(222.2, 47.4%, 11.2%);
-  --muted: hsl(174, 86%, 45%);
-  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
-  --accent: hsl(174, 86%, 45%);
-  --accent-foreground: hsl(222.2, 47.4%, 11.2%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(214, 32%, 91%);
-  --input: hsl(214, 32%, 91%);
-  --ring: hsl(221.2, 83.2%, 53.3%);
-  --chart-1: hsl(220, 70%, 50%);
-  --chart-2: hsl(160, 60%, 45%);
-  --chart-3: hsl(30, 80%, 55%);
-  --chart-4: hsl(280, 65%, 60%);
-  --chart-5: hsl(340,75%,55%);
-}
-
-/* Dark mode support */
-.dark {
-  --background: hsl(222, 20%, 12%);
-  --foreground: hsl(210, 40%, 98%);
-  --card: hsl(222, 25%, 18%);
-  --card-foreground: hsl(210, 40%, 98%);
-  --popover: hsl(222, 20%, 12%);
-  --popover-foreground: hsl(210, 40%, 98%);
-  --primary: hsl(199, 89%, 55%);
-  --primary-foreground: hsl(222.2, 47.4%, 11.2%);
-  --secondary: hsl(174, 86%, 50%);
-  --secondary-foreground: hsl(210, 40%, 98%);
-  --muted: hsl(174, 86%, 50%);
-  --muted-foreground: hsl(215.4, 20.2%, 65.1%);
-  --accent: hsl(174, 86%, 50%);
-  --accent-foreground: hsl(210, 40%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(217, 19%, 27%);
-  --input: hsl(174, 86%, 50%);
-  --ring: hsl(224.3, 76.3%, 48%);
-  --chart-1: hsl(220, 70%, 50%);
-  --chart-2: hsl(160, 60%, 45%);
-  --chart-3: hsl(30, 80%, 55%);
-  --chart-4: hsl(280, 65%, 60%);
-  --chart-5: hsl(340,75%,55%);
 }
 
 /* Custom animations */

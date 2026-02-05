@@ -24,12 +24,12 @@ export default function App() {
   }, []) // Array vacío indica que solo se ejecuta una vez al montar
 
   return (
-    <div className={ `mx-auto min-h-dvh bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 ${theme}`}>
+    <div className={ `mx-auto flex flex-col min-h-dvh bg-gradient-to-br from-gray-900 via-gray-700 to-gray-900 ${theme}`}>
       {/* Header - Contiene branding y navegación principal */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Sección de branding con logo y título */}
+            {/* Sección de branding con logo, título y botón de cambio de tema */}
             <div className="flex items-center gap-3 animate-fade-in">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor">
@@ -42,18 +42,17 @@ export default function App() {
                 </h1>
                 <p className="text-xs text-muted-foreground">Gestión eficiente de tareas</p>
               </div>
-            </div>
 
-            {/* Botón para cambiar de tema */}
-            <div className='flex items-center '>
-              <button
-                onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
-                className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
-              >
-                {theme === themes[0] ? '🌙' : '☀️'}
-              </button>
+              {/* Botón para cambiar de tema */}
+              <div className='flex items-center '>
+                <button
+                  onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
+                  className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
+                >
+                  {theme === themes[0] ? '🌙' : '☀️'}
+                </button>
+              </div>
             </div>
-
             {/* Navegación por pestañas con accesibilidad ARIA */}
             <nav
               className="inline-flex p-1 bg-muted rounded-lg animate-slide-in"
@@ -92,7 +91,7 @@ export default function App() {
       </header>
 
       {/* Área de contenido principal - Renderiza el componente correspondiente a la vista activa */}
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container flex-grow mx-auto px-4 py-8 max-w-6xl">
         <div
           id={`${view}-panel`} // ID que conecta con aria-labelledby de las pestañas
           role="tabpanel" // Rol ARIA para panel de contenido
@@ -105,7 +104,7 @@ export default function App() {
       </main>
 
       {/* Footer - Información institucional y enlaces de ayuda */}
-      <footer className="border-t bg-card/30 backdrop-blur-sm mt-auto">
+      <footer className="border-t bg-card/70 backdrop-blur-sm mt-auto">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>© 2026 ChecklistApp. Todos los derechos reservados.</p>
