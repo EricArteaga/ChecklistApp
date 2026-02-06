@@ -125,6 +125,11 @@ public interface TaskMapper {
      * @param dto DTO con campos a actualizar (null = no cambiar)
      * @param entity Entidad a actualizar
      */
+    @Mapping(target = "id", ignore = true)  // ID es inmutable
+    @Mapping(target = "idUsuario", ignore = true)  // No se permite cambiar propietario
+    @Mapping(target = "fechaCreacion", ignore = true)  // Fecha creación es inmutable
+    @Mapping(target = "usuario", ignore = true)  // Relación gestionada por idUsuario
+    @Mapping(target = "tipo", ignore = true)  // Relación gestionada por idTipo
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDTO(UpdateTaskDTO dto, @MappingTarget Task entity);
 }
