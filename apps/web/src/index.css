@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* 
+  Los estilos de packages/ui/src/styles/global.css sobreescribe esto, por lo que
+  esto es redundante. Es posible que esto se pueda eliminar, pero por ahora lo dejo aquí para evitar problemas de estilos.
+ */
 @layer base {
   :root {
     --background: 0 0% 100%;

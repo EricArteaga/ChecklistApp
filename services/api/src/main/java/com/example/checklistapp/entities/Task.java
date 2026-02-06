@@ -17,8 +17,8 @@ public class Task {
     @Column(name = "id_usuario", nullable = false) // Mapea a columna id_usuario, NOT NULL en BD
     private Integer idUsuario; // Clave foránea que referencia al usuario propietario de la tarea
     
-    @Column(name = "id_tipo", nullable = false) // Mapea a columna id_tipo, NOT NULL en BD
-    private Integer idTipo; // Clave foránea que referencia al tipo/categoría de la tarea
+    @Column(name = "id_tipo") // Mapea a columna id_tipo, NULL permitido en BD (tipo opcional)
+    private Integer idTipo; // Clave foránea que referencia al tipo/categoría de la tarea (opcional)
     
     @NotBlank(message = "Name is required") // Validación: campo no vacío ni nulo antes de persistir
     @Size(max = 150) // Validación: límite de longitud máxima a 150 caracteres
