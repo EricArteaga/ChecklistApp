@@ -30,6 +30,8 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     List<Task> findPendingTasksUpToDate(@Param("userId") Integer userId, @Param("today") LocalDate today);
 
     List<Task> findByIdTipo(Integer idTipo);
+    long countByIdUsuario(Integer idUsuario);
+    long countByIdTipo(Integer idTipo);
 
     @Query("SELECT COUNT(t) FROM Task t WHERE t.idUsuario = :userId AND t.completada = true " +
            "AND t.fechaRealizacion = :date")
