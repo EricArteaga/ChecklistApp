@@ -14,9 +14,6 @@ public record CreateTypeDTO(
     String nombre,
 
     @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "El color debe ser un código hexadecimal válido (ej: #326cc3)")
-    String color,
-
-    @Size(max = 200, message = "La descripción no puede exceder 200 caracteres")
-    String descripcion
+    String color
 ) {
 }

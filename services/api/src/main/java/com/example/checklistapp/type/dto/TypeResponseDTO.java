@@ -4,8 +4,7 @@ public record TypeResponseDTO(
     Integer id,
     Integer idUsuario,
     String nombre,
-    String color,
-    String descripcion
+    String color
 ) {
     public boolean tieneColorValido() {
         return color != null && color.matches("^#[0-9A-Fa-f]{6}$");

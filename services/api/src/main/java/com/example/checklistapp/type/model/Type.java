@@ -19,9 +19,6 @@ public class Type {
     @Column(name = "id_usuario", nullable = false)
     private Integer idUsuario;
 
-    @Column(length = 200)
-    private String descripcion;
-
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -33,7 +30,4 @@ public class Type {
 
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
-
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }
