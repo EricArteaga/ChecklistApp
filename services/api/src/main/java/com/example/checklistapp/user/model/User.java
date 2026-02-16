@@ -17,6 +17,9 @@ public class User {
     @Column(nullable = false, length = 100)
     private String nombre;
 
+    @Column(name = "hash_contrasena", nullable = false)
+    private String hashContrasena;
+
     @Column(nullable = false)
     private LocalDateTime fechaCreacion;
 
@@ -33,6 +36,9 @@ public class User {
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public String getHashContrasena() { return hashContrasena; }
+    public void setHashContrasena(String hashContrasena) { this.hashContrasena = hashContrasena; }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }

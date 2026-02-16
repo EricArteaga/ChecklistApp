@@ -19,3 +19,9 @@ spring:
     schemas: gestor_tareas
     baseline-on-migrate: true
     locations: classpath:db/migration
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:miClaveSecretaMuySeguraParaFirmarTokensJWT1234567890CambiarEnProduccion}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}  # 15 minutos en ms
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 días en ms

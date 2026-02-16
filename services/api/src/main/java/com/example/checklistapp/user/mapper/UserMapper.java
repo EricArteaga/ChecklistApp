@@ -12,7 +12,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
     User toEntity(CreateUserDTO dto);
-    UserResponseDTO toResponseDTO(User user);
-    UserSummaryDTO toSummaryDTO(User user);
+    UserResponseDTO toResponseDTO(User user);  // hashContrasena no está en DTO, no se mapea
+    UserSummaryDTO toSummaryDTO(User user);    // hashContrasena no está en DTO, no se mapea
     void updateEntityFromDTO(UpdateUserDTO dto, @MappingTarget User user);
 }

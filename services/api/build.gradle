@@ -8,6 +8,17 @@ group = 'com.example'
 version = '0.0.1'
 sourceCompatibility = '17'
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// Configurar compilador explícitamente para MapStruct + Java 21
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
+    options.release = 17
+}
+
 repositories {
     mavenCentral()
 }
@@ -16,11 +27,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'  // Spring Security
     implementation 'org.flywaydb:flyway-core'
 
-    // MapStruct para mapeo Entity <-> DTO
-    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    // MapStruct para mapeo Entity <-> DTO (actualizado para soportar Java 21)
+    implementation 'org.mapstruct:mapstruct:1.6.0.Beta1'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.0.Beta1'
+
+    // JWT (JSON Web Tokens)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // Para soporte de MapStruct con Spring (componentModel = "spring")
     compileOnly 'org.projectlombok:lombok'  // Opcional, si usas Lombok
