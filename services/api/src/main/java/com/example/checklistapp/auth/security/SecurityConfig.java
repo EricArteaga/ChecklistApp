@@ -37,8 +37,8 @@ public class SecurityConfig {
                 // Deshabilitar CSRF (API REST stateless no lo necesita)
                 .csrf(csrf -> csrf.disable())
 
-                // Configurar CORS
-                .cors(cors -> cors.configure(http))
+                // Habilitar CORS (configurado en CorsConfig)
+                .cors(cors -> cors.disable()) // Deshabilitar config por defecto y usar nuestro CorsFilter
 
                 // Configurar autorización de endpoints
                 .authorizeHttpRequests(auth -> auth

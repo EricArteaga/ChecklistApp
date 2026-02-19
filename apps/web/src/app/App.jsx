@@ -1,50 +1,64 @@
-import React, { useState, useEffect } from 'react' // Importa hooks de React para manejo de estado y efectos secundarios
-import Checklist from '../features/checklist/Checklist' // Componente para gestión de checklists
-import Heatmap from '../features/heatmap/Heatmap' // Componente para visualización de actividad
-import sprite from '../../../../packages/lib/sprite.svg'  // Importa el sprite SVG para iconos
+import React, { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import Checklist from '../features/checklist/Checklist'
+import Heatmap from '../features/heatmap/Heatmap'
+import Login from '../features/auth/Login'
+import Register from '../features/auth/Register'
+import { authService } from '../services/authService'
+import sprite from '../../../../packages/lib/sprite.svg'
 
-// Configuración de pestañas de navegación disponibles en la aplicación
+// Configuración de pestañas de navegación
 const tabs = [
-  { id: 'checklist', label: 'Checklist', icon: '✓' }, // Vista principal de gestión de tareas
-  { id: 'heatmap', label: 'Heatmap', icon: '📊' }, // Vista de estadísticas y actividad
+  { id: 'checklist', label: 'Checklist', icon: '✓' },
+  { id: 'heatmap', label: 'Heatmap', icon: '📊' },
 ]
 
-// Temas de la app
-const themes = ["light", "dark"];
+const themes = ["light", "dark"]
 
-export default function App() {
-  const [view, setView] = useState('checklist') // Estado que controla la vista activa (checklist o heatmap)
-  const [mounted, setMounted] = useState(false) // Estado para controlar animación inicial de montaje
-  const [theme, setTheme] = useState(themes[0]) // Estado que controla el tema de la aplicación 
+// Componente protegido: Solo accesible si está autenticado
+function ProtectedRoute({ children }) {
+  const isAuth = authService.isAuthenticated()
+  return isAuth ? children : <Navigate to="/login" replace />
+}
 
-  // Efecto para marcar que el componente se ha montado completamente
-  // Esto evita parpadeos en animaciones durante el primer renderizado
+// Componente principal del layout con navegación
+function MainLayout() {
+  const navigate = useNavigate()
+  const [view, setView] = useState('checklist')
+  const [mounted, setMounted] = useState(false)
+  const [theme, setTheme] = useState(themes[0])
+
   useEffect(() => {
     setMounted(true)
-  }, []) // Array vacío indica que solo se ejecuta una vez al montar
+  }, [])
+
+  const handleLogout = () => {
+    authService.logout()
+    navigate('/login')
+  }
 
   return (
-    <div className={ `mx-auto flex flex-col min-h-dvh bg-gradient-to-br from-gray-900 via-gray-700 to-gray-900 ${theme}`}>
-      {/* Header - Contiene branding y navegación principal */}
+    <div className={`mx-auto flex flex-col min-h-dvh bg-gradient-to-br from-gray-900 via-gray-700 to-gray-900 ${theme}`}>
+      {/* Header */}
       <header className="border-b bg-card/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Sección de branding con logo, título y botón de cambio de tema */}
+            {/* Branding */}
             <div className="flex items-center gap-3 animate-fade-in">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor">
                   <use href={`${sprite}#icon-checklist`} />
-                </svg>               
+                </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground ">
+                <h1 className="text-2xl font-bold text-foreground">
                   ChecklistApp
                 </h1>
                 <p className="text-xs text-muted-foreground">Gestión eficiente de tareas</p>
               </div>
 
-              {/* Botón para cambiar de tema */}
-              <div className='flex items-center '>
+              {/* Theme toggle */}
+              <div className='flex items-center'>
                 <button
                   onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
                   className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
@@ -53,26 +67,27 @@ export default function App() {
                 </button>
               </div>
             </div>
-            {/* Navegación por pestañas con accesibilidad ARIA */}
+
+            {/* Navigation */}
             <nav
               className="inline-flex p-1 bg-muted rounded-lg animate-slide-in"
-              role="tablist" // Indica que es una lista de pestañas para lectores de pantalla
-              aria-label="Vistas de la aplicación" // Descripción para accesibilidad
+              role="tablist"
+              aria-label="Vistas de la aplicación"
             >
               {tabs.map((tab) => (
                 <button
-                  key={tab.id} // Identificador único para React reconciliation
-                  onClick={() => setView(tab.id)} // Cambia la vista activa al hacer clic
-                  role="tab" // Rol ARIA para pestaña
-                  aria-selected={view === tab.id} // Indica si la pestaña está seleccionada
-                  aria-controls={`${tab.id}-panel`} // Conecta la pestaña con su panel de contenido
+                  key={tab.id}
+                  onClick={() => setView(tab.id)}
+                  role="tab"
+                  aria-selected={view === tab.id}
+                  aria-controls={`${tab.id}-panel`}
                   className={`
                     relative px-4 py-2 rounded-md text-sm font-medium
                     transition-all duration-200
                     flex items-center gap-2
                     ${view === tab.id
-                      ? 'bg-background text-foreground shadow-sm' // Estilos para pestaña activa
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50' // Estilos para pestaña inactiva
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                     }
                   `}
                 >
@@ -86,47 +101,60 @@ export default function App() {
                 </button>
               ))}
             </nav>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 text-sm bg-destructive/10 text-destructive rounded-md hover:bg-destructive/20 transition-colors"
+            >
+              Cerrar Sesión
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Área de contenido principal - Renderiza el componente correspondiente a la vista activa */}
+      {/* Main Content */}
       <main className="container flex-grow mx-auto px-4 py-8 max-w-6xl">
         <div
-          id={`${view}-panel`} // ID que conecta con aria-labelledby de las pestañas
-          role="tabpanel" // Rol ARIA para panel de contenido
-          aria-labelledby={`${view}-tab`} // Conecta con su pestaña correspondiente
-          className={mounted ? 'animate-fade-in' : ''} // Aplica animación solo después del montaje
+          id={`${view}-panel`}
+          role="tabpanel"
+          aria-labelledby={`${view}-tab`}
+          className={mounted ? 'animate-fade-in' : ''}
         >
-          {view === 'checklist' && <Checklist />} // Renderiza componente de checklist si la vista es 'checklist'
-          {view === 'heatmap' && <Heatmap />} // Renderiza componente de heatmap si la vista es 'heatmap'
+          {view === 'checklist' && <Checklist />}
+          {view === 'heatmap' && <Heatmap />}
         </div>
       </main>
 
-      {/* Footer - Información institucional y enlaces de ayuda */}
+      {/* Footer */}
       <footer className="border-t bg-card/70 backdrop-blur-sm mt-auto">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>© 2026 ChecklistApp. Todos los derechos reservados.</p>
-            <div className="flex items-center gap-4">
-              <a
-                href="#"
-                className="hover:text-foreground transition-colors"
-                aria-label="Documentación"
-              >
-                Documentación
-              </a>
-              <a
-                href="#"
-                className="hover:text-foreground transition-colors"
-                aria-label="Soporte"
-              >
-                Soporte
-              </a>
-            </div>
           </div>
         </div>
       </footer>
     </div>
+  )
+}
+
+// App principal con rutas
+export default function App() {
+  return (
+    <Routes>
+      {/* Rutas públicas */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Rutas protegidas */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   )
 }

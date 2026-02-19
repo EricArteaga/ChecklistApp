@@ -1,118 +1,134 @@
-import React, { useState, useEffect } from 'react' // Importa hooks de React para gestión de estado y efectos
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, EmptyState, Badge } from '@checklist/ui' // Componentes UI reutilizables del paquete interno
+import React, { useState, useEffect } from 'react'
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, EmptyState, Badge } from '@checklist/ui'
+import taskService from '../../services/taskService'
+import authService from '../../services/authService'
 
 export default function Checklist() {
   // Estados principales del componente
-  const [checklists, setChecklists] = useState([]) // Almacena la lista de checklists
-  const [loading, setLoading] = useState(true) // Controla estado de carga durante fetch de datos
-  const [error, setError] = useState(null) // Almacena mensajes de error si ocurren
-  const [newItemTitle, setNewItemTitle] = useState('') // Input para crear nuevo checklist
-  const [isCreating, setIsCreating] = useState(false) // Controla estado de carga durante creación
-  const [expandedChecklist, setExpandedChecklist] = useState(null) // ID del checklist expandido (null = ninguno)
+  const [checklists, setChecklists] = useState([])
+  const [tasks, setTasks] = useState([]) // Tareas reales del backend
+  const [currentUser, setCurrentUser] = useState(null) // Usuario autenticado
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [newItemTitle, setNewItemTitle] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+  const [expandedChecklist, setExpandedChecklist] = useState(null)
 
-  // Efecto para cargar datos iniciales de checklists
+  // Efecto para cargar datos iniciales
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true) // Activa indicador de carga
+      setLoading(true)
       try {
-        // Simula llamada a API con delay de 800ms para demostración
-        await new Promise(resolve => setTimeout(resolve, 800))
+        // 1. Obtener usuario autenticado
+        const user = await authService.getMe()
+        setCurrentUser(user)
 
-        // Datos mockeados para desarrollo - reemplazar con llamada real a API
+        // 2. Obtener tareas del usuario
+        const tasksData = await taskService.getTasksByUser(user.id)
+        setTasks(tasksData)
+
+        // 3. Agrupar tareas por tipo (por ahora usamos todas como un solo checklist)
+        // TODO: Implementar agrupación por Type cuando esté listo
         setChecklists([
           {
-            id: 1,
-            title: 'Tareas Diarias',
-            description: 'Tareas rutinarias para completar cada día',
-            items: [
-              { id: 1, description: 'Revisar correos electrónicos', checked: true },
-              { id: 2, description: 'Reunión de equipo a las 10:00 AM', checked: false },
-              { id: 3, description: 'Actualizar documentación del proyecto', checked: false },
-            ],
+            id: 'all',
+            title: 'Mis Tareas',
+            description: 'Todas mis tareas',
+            items: tasksData.map(task => ({
+              id: task.id,
+              description: task.titulo,
+              checked: task.completada
+            })),
             createdAt: new Date().toISOString(),
-          },
-          {
-            id: 2,
-            title: 'Proyecto Web',
-            description: 'Tareas relacionadas con el desarrollo web',
-            items: [
-              { id: 4, description: 'Configurar TailwindCSS v4', checked: true },
-              { id: 5, description: 'Implementar componentes UI reutilizables', checked: true },
-              { id: 6, description: 'Mejorar accesibilidad de la aplicación', checked: false },
-              { id: 7, description: 'Agregar soporte de modo oscuro', checked: false },
-            ],
-            createdAt: new Date().toISOString(),
-          },
+          }
         ])
       } catch (err) {
-        setError('Error al cargar los checklists. Por favor, intenta nuevamente.')
+        setError(err.message || 'Error al cargar los datos. Por favor, intenta nuevamente.')
       } finally {
-        setLoading(false) // Desactiva indicador de carga independientemente del resultado
+        setLoading(false)
       }
     }
 
-    loadData() // Ejecuta la carga de datos
-  }, []) // Array vacío: solo se ejecuta al montar el componente
+    loadData()
+  }, [])
 
-  // Función para crear un nuevo checklist
+  // Función para crear una nueva tarea (checklist)
   const handleCreateChecklist = async () => {
-    if (!newItemTitle.trim()) return // Evita crear checklists vacíos
+    if (!newItemTitle.trim() || !currentUser) return
 
-    setIsCreating(true) // Activa indicador de carga
+    setIsCreating(true)
     try {
-      // Simula llamada a API con delay
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Crear tarea en el backend
+      const newTask = await taskService.createTask({
+        titulo: newItemTitle,
+        idUsuario: currentUser.id,
+        completada: false
+      })
 
-      // Crea nuevo objeto checklist con timestamp actual
+      // Actualizar estado local
       const newChecklist = {
-        id: Date.now(), // ID único basado en timestamp
-        title: newItemTitle,
-        description: 'Descripción del checklist',
-        items: [], // Lista vacía inicial
-        createdAt: new Date().toISOString(),
+        id: newTask.id,
+        title: newTask.titulo,
+        description: 'Nueva tarea',
+        items: [],
+        createdAt: newTask.fechaCreacion || new Date().toISOString(),
       }
 
-      // Actualiza estado añadiendo nuevo checklist al inicio del array
       setChecklists([newChecklist, ...checklists])
-      setNewItemTitle('') // Limpia el input
-      setExpandedChecklist(newChecklist.id) // Expande automáticamente el nuevo checklist
+      setNewItemTitle('')
+      setExpandedChecklist(newChecklist.id)
     } catch (err) {
-      setError('Error al crear el checklist. Por favor, intenta nuevamente.')
+      setError(err.message || 'Error al crear la tarea. Por favor, intenta nuevamente.')
     } finally {
       setIsCreating(false)
     }
   }
 
-  // Función para eliminar un checklist
+  // Función para eliminar un checklist (tarea)
   const handleDeleteChecklist = async (checklistId) => {
     try {
-      // Simula llamada a API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Eliminar del backend
+      await taskService.deleteTask(checklistId)
 
-      // Filtra el checklist a eliminar y actualiza estado
+      // Actualizar estado local
       setChecklists(checklists.filter(c => c.id !== checklistId))
-      // Si el checklist eliminado estaba expandido, colapsa la vista
       if (expandedChecklist === checklistId) {
         setExpandedChecklist(null)
       }
     } catch (err) {
-      setError('Error al eliminar el checklist. Por favor, intenta nuevamente.')
+      setError(err.message || 'Error al eliminar la tarea. Por favor, intenta nuevamente.')
     }
   }
 
-  // Función para alternar estado completado/no completado de un ítem
+  // Función para alternar estado completado de un ítem (tarea)
   const handleToggleItem = async (checklistId, itemId) => {
-    // Actualiza el estado local de forma inmutable
-    setChecklists(checklists.map(checklist => {
-      if (checklist.id === checklistId) {
-        // Encuentra el checklist y modifica el estado del ítem específico
-        const updatedItems = checklist.items.map(item =>
-          item.id === itemId ? { ...item, checked: !item.checked } : item
-        )
-        return { ...checklist, items: updatedItems }
-      }
-      return checklist // Devuelve checklist sin cambios si no coincide
-    }))
+    try {
+      // Buscar la tarea actual
+      const task = tasks.find(t => t.id === itemId)
+      if (!task) return
+
+      // Actualizar en el backend
+      await taskService.updateTask(itemId, {
+        completada: !task.completada
+      })
+
+      // Actualizar estado local (optimista)
+      setTasks(tasks.map(t =>
+        t.id === itemId ? { ...t, completada: !t.completada } : t
+      ))
+
+      setChecklists(checklists.map(checklist => {
+        if (checklist.id === checklistId) {
+          const updatedItems = checklist.items.map(item =>
+            item.id === itemId ? { ...item, checked: !item.checked } : item
+          )
+          return { ...checklist, items: updatedItems }
+        }
+        return checklist
+      }))
+    } catch (err) {
+      setError(err.message || 'Error al actualizar la tarea.')
+    }
   }
 
   // Función para agregar nuevo ítem a un checklist
