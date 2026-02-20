@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@checklist/ui'
 import { useNavigate } from 'react-router-dom'
-import authService from '../../../services/authService'
+import authService from '../../services/authService'
 
 export default function Login() {
   const navigate = useNavigate()

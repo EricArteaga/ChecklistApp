@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Checklist from '../features/checklist/Checklist'
 import Heatmap from '../features/heatmap/Heatmap'
+import TypeManagement from '../features/types/TypeManagement'
 import Login from '../features/auth/Login'
 import Register from '../features/auth/Register'
-import { authService } from '../services/authService'
+import authService from '../services/authService'
 import sprite from '../../../../packages/lib/sprite.svg'
 
 // Configuración de pestañas de navegación
 const tabs = [
   { id: 'checklist', label: 'Checklist', icon: '✓' },
   { id: 'heatmap', label: 'Heatmap', icon: '📊' },
+  { id: 'types', label: 'Tipos', icon: '🏷️' },
 ]
 
 const themes = ["light", "dark"]
@@ -123,6 +125,7 @@ function MainLayout() {
         >
           {view === 'checklist' && <Checklist />}
           {view === 'heatmap' && <Heatmap />}
+          {view === 'types' && <TypeManagement />}
         </div>
       </main>
 

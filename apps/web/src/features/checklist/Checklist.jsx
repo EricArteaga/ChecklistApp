@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, EmptyState, Badge } from '@checklist/ui'
 import taskService from '../../services/taskService'
+import typeService from '../../services/typeService'
 import authService from '../../services/authService'
 
 export default function Checklist() {
   // Estados principales del componente
   const [checklists, setChecklists] = useState([])
   const [tasks, setTasks] = useState([]) // Tareas reales del backend
+  const [types, setTypes] = useState([]) // Tipos disponibles
   const [currentUser, setCurrentUser] = useState(null) // Usuario autenticado
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [newItemTitle, setNewItemTitle] = useState('')
+  const [selectedType, setSelectedType] = useState('') // Tipo seleccionado para nueva tarea
+  const [filterType, setFilterType] = useState('') // Filtro por tipo
   const [isCreating, setIsCreating] = useState(false)
   const [expandedChecklist, setExpandedChecklist] = useState(null)
 
@@ -23,25 +27,64 @@ export default function Checklist() {
         const user = await authService.getMe()
         setCurrentUser(user)
 
-        // 2. Obtener tareas del usuario
+        // 2. Obtener tipos del usuario
+        const typesData = await typeService.getTypesByUser(user.id)
+        setTypes(typesData)
+
+        // 3. Obtener tareas del usuario
         const tasksData = await taskService.getTasksByUser(user.id)
         setTasks(tasksData)
 
-        // 3. Agrupar tareas por tipo (por ahora usamos todas como un solo checklist)
-        // TODO: Implementar agrupación por Type cuando esté listo
-        setChecklists([
-          {
-            id: 'all',
-            title: 'Mis Tareas',
-            description: 'Todas mis tareas',
-            items: tasksData.map(task => ({
+        // 4. Agrupar tareas por tipo
+        const groupedByType = {}
+        const tasksWithoutType = []
+
+        tasksData.forEach(task => {
+          if (task.tipo) {
+            if (!groupedByType[task.tipo.id]) {
+              groupedByType[task.tipo.id] = {
+                id: task.tipo.id,
+                title: task.tipo.nombre,
+                description: task.tipo.nombre,
+                color: task.tipo.color,
+                items: []
+              }
+            }
+            groupedByType[task.tipo.id].items.push({
               id: task.id,
               description: task.titulo,
-              checked: task.completada
-            })),
-            createdAt: new Date().toISOString(),
+              checked: task.completada,
+              tipo: task.tipo
+            })
+          } else {
+            tasksWithoutType.push({
+              id: task.id,
+              description: task.titulo,
+              checked: task.completada,
+              tipo: null
+            })
           }
-        ])
+        })
+
+        // Crear checklists agrupados
+        const checklistsArray = Object.values(groupedByType).map(group => ({
+          ...group,
+          createdAt: new Date().toISOString(),
+        }))
+
+        // Agregar tareas sin tipo si existen
+        if (tasksWithoutType.length > 0) {
+          checklistsArray.push({
+            id: 'without-type',
+            title: 'Sin Categorizar',
+            description: 'Tareas sin tipo asignado',
+            color: '#6B7280',
+            items: tasksWithoutType,
+            createdAt: new Date().toISOString(),
+          })
+        }
+
+        setChecklists(checklistsArray)
       } catch (err) {
         setError(err.message || 'Error al cargar los datos. Por favor, intenta nuevamente.')
       } finally {
@@ -59,11 +102,18 @@ export default function Checklist() {
     setIsCreating(true)
     try {
       // Crear tarea en el backend
-      const newTask = await taskService.createTask({
+      const taskData = {
         titulo: newItemTitle,
         idUsuario: currentUser.id,
         completada: false
-      })
+      }
+
+      // Agregar tipo si está seleccionado
+      if (selectedType) {
+        taskData.idTipo = parseInt(selectedType)
+      }
+
+      const newTask = await taskService.createTask(taskData)
 
       // Actualizar estado local
       const newChecklist = {
@@ -76,6 +126,7 @@ export default function Checklist() {
 
       setChecklists([newChecklist, ...checklists])
       setNewItemTitle('')
+      setSelectedType('')
       setExpandedChecklist(newChecklist.id)
     } catch (err) {
       setError(err.message || 'Error al crear la tarea. Por favor, intenta nuevamente.')
@@ -255,28 +306,88 @@ export default function Checklist() {
       {/* Formulario para crear nuevo checklist */}
       <Card className="border-dashed"> {/* Borde punteado para indicar elemento de creación */}
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-3">
             <Input
               type="text"
               placeholder="Nombre del nuevo checklist..."
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)} // Actualiza estado con cada escritura
               onKeyPress={(e) => e.key === 'Enter' && handleCreateChecklist()} // Permite crear con Enter
-              className="flex-1"
+              className="w-full"
               aria-label="Nuevo nombre de checklist" // Etiqueta para accesibilidad
             />
-            <Button
-              onClick={handleCreateChecklist}
-              disabled={!newItemTitle.trim() || isCreating} // Deshabilita si está vacío o creando
-              loading={isCreating} // Muestra spinner durante creación
-            >
-              {isCreating ? 'Creando...' : 'Crear Checklist'}
-            </Button>
+            {types.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Seleccionar tipo de tarea"
+                >
+                  <option value="">Sin tipo</option>
+                  {types.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.nombre}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={handleCreateChecklist}
+                  disabled={!newItemTitle.trim() || isCreating} // Deshabilita si está vacío o creando
+                  loading={isCreating} // Muestra spinner durante creación
+                >
+                  {isCreating ? 'Creando...' : 'Crear Checklist'}
+                </Button>
+              </div>
+            )}
+            {types.length === 0 && (
+              <Button
+                onClick={handleCreateChecklist}
+                disabled={!newItemTitle.trim() || isCreating} // Deshabilita si está vacío o creando
+                loading={isCreating} // Muestra spinner durante creación
+                className="w-full"
+              >
+                {isCreating ? 'Creando...' : 'Crear Checklist'}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Lista de checklists - muestra estado vacío o lista de cards */}
+      {/* Filtro por tipo */}
+      {types.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">Filtrar por tipo:</span>
+              <Button
+                size="sm"
+                variant={filterType === '' ? 'default' : 'outline'}
+                onClick={() => setFilterType('')}
+              >
+                Todos
+              </Button>
+              {types.map(type => (
+                <Button
+                  key={type.id}
+                  size="sm"
+                  variant={filterType === String(type.id) ? 'default' : 'outline'}
+                  onClick={() => setFilterType(filterType === String(type.id) ? '' : String(type.id))}
+                  className="flex items-center gap-2"
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: type.color }}
+                  />
+                  {type.nombre}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {checklists.length === 0 ? (
         <EmptyState
           icon={
@@ -294,7 +405,15 @@ export default function Checklist() {
         />
       ) : (
         <div className="space-y-4">
-          {checklists.map((checklist, index) => (
+          {checklists
+            .filter(checklist => {
+              // Filtrar por tipo si hay un filtro seleccionado
+              if (filterType && checklist.id !== parseInt(filterType)) {
+                return false
+              }
+              return true
+            })
+            .map((checklist, index) => (
             <Card
               key={checklist.id}
               className={`transition-all duration-300 hover:shadow-lg animate-slide-in`}
@@ -304,6 +423,13 @@ export default function Checklist() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0"> {/* min-w-0 permite truncado de texto */}
                     <div className="flex items-center gap-2 mb-1">
+                      {checklist.color && (
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: checklist.color }}
+                          title={checklist.color}
+                        />
+                      )}
                       <CardTitle className="truncate">{checklist.title}</CardTitle>
                       <Badge variant="outline" className="shrink-0">
                         {checklist.items.length} {checklist.items.length === 1 ? 'ítem' : 'ítems'}
@@ -463,17 +589,26 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
 
                 {/* Contenido del ítem con texto tachado si está completado */}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className={`
-                      text-sm transition-all duration-200
-                      ${item.checked
-                        ? 'text-muted-foreground line-through' // Estilo para completados
-                        : 'text-foreground' // Estilo para pendientes
-                      }
-                    `}
-                  >
-                    {item.description}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    {item.tipo && (
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: item.tipo.color }}
+                        title={item.tipo.nombre}
+                      />
+                    )}
+                    <p
+                      className={`
+                        text-sm transition-all duration-200
+                        ${item.checked
+                          ? 'text-muted-foreground line-through' // Estilo para completados
+                          : 'text-foreground' // Estilo para pendientes
+                        }
+                      `}
+                    >
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Botón de eliminar (visible solo al hover del grupo) */}
