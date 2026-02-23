@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +39,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 // Habilitar CORS (configurado en CorsConfig)
-                .cors(cors -> cors.disable()) // Deshabilitar config por defecto y usar nuestro CorsFilter
+                .cors(org.springframework.security.config.Customizer.withDefaults())
 
                 // Configurar autorización de endpoints
                 .authorizeHttpRequests(auth -> auth
