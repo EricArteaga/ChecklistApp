@@ -24,8 +24,10 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Orígenes permitidos (frontend en desarrollo)
-        config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("http://localhost:3001"); // Por si craco usa otro puerto
+        // Usar addAllowedOriginPattern para permitir credenciales
+        config.addAllowedOriginPattern("http://localhost:3000");
+        config.addAllowedOriginPattern("http://localhost:3001"); // Por si craco usa otro puerto
+        config.addAllowedOriginPattern("http://localhost:3002"); // Puerto adicional
 
         // Credenciales permitidas (cookies, headers de autorización)
         config.setAllowCredentials(true);

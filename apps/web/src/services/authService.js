@@ -14,7 +14,7 @@ import { API_ENDPOINTS } from './api/config'
  */
 export const login = async (email, password) => {
   const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
-    email,
+    correo: email,  // Backend espera 'correo', no 'email'
     password
   })
 
@@ -36,7 +36,7 @@ export const login = async (email, password) => {
 export const register = async (nombre, email, password) => {
   const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, {
     nombre,
-    email,
+    correo: email,  // Backend espera 'correo', no 'email'
     password
   })
 
