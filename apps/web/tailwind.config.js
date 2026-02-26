@@ -45,6 +45,26 @@ module.exports = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+          light: 'hsl(var(--success-light))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+          light: 'hsl(var(--warning-light))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+          light: 'hsl(var(--info-light))',
+        },
+        progress: {
+          DEFAULT: 'hsl(var(--progress))',
+          foreground: 'hsl(var(--progress-foreground))',
+          light: 'hsl(var(--progress-light))',
+        },
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',

@@ -4,6 +4,18 @@ import taskService from '../../services/taskService'
 import typeService from '../../services/typeService'
 import authService from '../../services/authService'
 
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * CHECKLIST - Task Management for Focus & Discipline
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * Design principles:
+ * • Minimalist cards for reduced cognitive load
+ * • Satisfying checkbox with Azul Verdoso (success color)
+ * • Gradient progress bars (Azul Verdoso → Azul Claro)
+ * • Clear visual hierarchy
+ * • Gamification through visual feedback
+ */
 export default function Checklist() {
   // Estados principales del componente
   const [checklists, setChecklists] = useState([])
@@ -23,68 +35,125 @@ export default function Checklist() {
     const loadData = async () => {
       setLoading(true)
       try {
-        // 1. Obtener usuario autenticado
-        const user = await authService.getMe()
-        setCurrentUser(user)
+        // Verificar si hay usuario autenticado
+        const isAuth = authService.isAuthenticated()
 
-        // 2. Obtener tipos del usuario
-        const typesData = await typeService.getTypesByUser(user.id)
-        setTypes(typesData)
+        if (isAuth) {
+          // 1. Obtener usuario autenticado
+          const user = await authService.getMe()
+          setCurrentUser(user)
 
-        // 3. Obtener tareas del usuario
-        const tasksData = await taskService.getTasksByUser(user.id)
-        setTasks(tasksData)
+          // 2. Obtener tipos del usuario
+          const typesData = await typeService.getTypesByUser(user.id)
+          setTypes(typesData)
 
-        // 4. Agrupar tareas por tipo
-        const groupedByType = {}
-        const tasksWithoutType = []
+          // 3. Obtener tareas del usuario
+          const tasksData = await taskService.getTasksByUser(user.id)
+          setTasks(tasksData)
 
-        tasksData.forEach(task => {
-          if (task.tipo) {
-            if (!groupedByType[task.tipo.id]) {
-              groupedByType[task.tipo.id] = {
-                id: task.tipo.id,
-                title: task.tipo.nombre,
-                description: task.tipo.nombre,
-                color: task.tipo.color,
-                items: []
+          // 4. Agrupar tareas por tipo
+          const groupedByType = {}
+          const tasksWithoutType = []
+
+          tasksData.forEach(task => {
+            if (task.tipo) {
+              if (!groupedByType[task.tipo.id]) {
+                groupedByType[task.tipo.id] = {
+                  id: task.tipo.id,
+                  title: task.tipo.nombre,
+                  description: task.tipo.nombre,
+                  color: task.tipo.color,
+                  items: []
+                }
               }
+              groupedByType[task.tipo.id].items.push({
+                id: task.id,
+                description: task.nombre,
+                checked: task.completada,
+                tipo: task.tipo
+              })
+            } else {
+              tasksWithoutType.push({
+                id: task.id,
+                description: task.nombre,
+                checked: task.completada,
+                tipo: null
+              })
             }
-            groupedByType[task.tipo.id].items.push({
-              id: task.id,
-              description: task.titulo,
-              checked: task.completada,
-              tipo: task.tipo
-            })
-          } else {
-            tasksWithoutType.push({
-              id: task.id,
-              description: task.titulo,
-              checked: task.completada,
-              tipo: null
+          })
+
+          // Crear checklists agrupados
+          const checklistsArray = Object.values(groupedByType).map(group => ({
+            ...group,
+            createdAt: new Date().toISOString(),
+          }))
+
+          // Agregar tareas sin tipo si existen
+          if (tasksWithoutType.length > 0) {
+            checklistsArray.push({
+              id: 'without-type',
+              title: 'Sin Categorizar',
+              description: 'Tareas sin tipo asignado',
+              color: '#6B7280',
+              items: tasksWithoutType,
+              createdAt: new Date().toISOString(),
             })
           }
-        })
 
-        // Crear checklists agrupados
-        const checklistsArray = Object.values(groupedByType).map(group => ({
-          ...group,
-          createdAt: new Date().toISOString(),
-        }))
+          setChecklists(checklistsArray)
+        } else {
+          // Usuario no autenticado: cargar tareas de localStorage
+          const localTasks = await taskService.getTasksByUser(null)
+          setTasks(localTasks)
 
-        // Agregar tareas sin tipo si existen
-        if (tasksWithoutType.length > 0) {
-          checklistsArray.push({
-            id: 'without-type',
-            title: 'Sin Categorizar',
-            description: 'Tareas sin tipo asignado',
-            color: '#6B7280',
-            items: tasksWithoutType,
-            createdAt: new Date().toISOString(),
+          // Convertir tareas locales al formato de checklists
+          const groupedByType = {}
+          const tasksWithoutType = []
+
+          localTasks.forEach(task => {
+            const taskData = {
+              id: task.id,
+              description: task.nombre || task.title || task.description,
+              checked: task.completada || task.checked || false,
+              tipo: task.tipo || null
+            }
+
+            if (taskData.tipo) {
+              if (!groupedByType[taskData.tipo.id]) {
+                groupedByType[taskData.tipo.id] = {
+                  id: taskData.tipo.id,
+                  title: taskData.tipo.nombre,
+                  description: taskData.tipo.nombre,
+                  color: taskData.tipo.color,
+                  items: []
+                }
+              }
+              groupedByType[taskData.tipo.id].items.push(taskData)
+            } else {
+              tasksWithoutType.push(taskData)
+            }
           })
-        }
 
-        setChecklists(checklistsArray)
+          // Crear checklists agrupados
+          const checklistsArray = Object.values(groupedByType).map(group => ({
+            ...group,
+            createdAt: new Date().toISOString(),
+          }))
+
+          // Agregar tareas sin tipo si existen
+          if (tasksWithoutType.length > 0) {
+            checklistsArray.push({
+              id: 'without-type',
+              title: 'Sin Categorizar',
+              description: 'Tareas sin tipo asignado',
+              color: '#6B7280',
+              items: tasksWithoutType,
+              createdAt: new Date().toISOString(),
+            })
+          }
+
+          setChecklists(checklistsArray)
+        }
       } catch (err) {
         setError(err.message || 'Error al cargar los datos. Por favor, intenta nuevamente.')
       } finally {
@@ -97,14 +166,14 @@ export default function Checklist() {
 
   // Función para crear una nueva tarea (checklist)
   const handleCreateChecklist = async () => {
-    if (!newItemTitle.trim() || !currentUser) return
+    if (!newItemTitle.trim()) return
 
     setIsCreating(true)
     try {
-      // Crear tarea en el backend
+      // Crear tarea en el backend o localStorage
       const taskData = {
-        titulo: newItemTitle,
-        idUsuario: currentUser.id,
+        nombre: newItemTitle,
+        idUsuario: currentUser?.id || null, // Usar ID si hay usuario, null si es anónimo
         completada: false
       }
 
@@ -118,18 +187,25 @@ export default function Checklist() {
       // Actualizar estado local
       const newChecklist = {
         id: newTask.id,
-        title: newTask.titulo,
+        title: newTask.nombre || newItemTitle,
         description: 'Nueva tarea',
         items: [],
-        createdAt: newTask.fechaCreacion || new Date().toISOString(),
+        createdAt: newTask.createdAt || newTask.fechaCreacion || new Date().toISOString(),
       }
 
       setChecklists([newChecklist, ...checklists])
+      setTasks([...tasks, newTask])
       setNewItemTitle('')
       setSelectedType('')
       setExpandedChecklist(newChecklist.id)
+      setError(null) // Limpiar error al exito
     } catch (err) {
-      setError(err.message || 'Error al crear la tarea. Por favor, intenta nuevamente.')
+      // Mostrar error detallado con formato mejorado
+      const errorMessage = err.message || 'Error al crear la tarea. Por favor, intenta nuevamente.'
+      setError(errorMessage)
+
+      // Auto-limpiar el error después de 5 segundos
+      setTimeout(() => setError(null), 5000)
     } finally {
       setIsCreating(false)
     }
@@ -248,7 +324,7 @@ export default function Checklist() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
-          <p className="text-muted-foreground">Cargando checklists...</p>
+          <p className="text-muted-foreground">Cargando tus checklists...</p>
         </div>
       </div>
     )
@@ -256,6 +332,8 @@ export default function Checklist() {
 
   // Estado de error con botón de reintentar
   if (error) {
+    const isConnectionError = error.includes('No se pudo conectar con el servidor')
+
     return (
       <Card className="border-destructive">
         <CardContent className="pt-6">
@@ -266,16 +344,35 @@ export default function Checklist() {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-destructive mb-1">Error</h3>
-              <p className="text-sm text-muted-foreground">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => window.location.reload()} // Recarga la página para reintentar
-              >
-                Reintentar
-              </Button>
+              <h3 className="font-semibold text-destructive mb-1">
+                {isConnectionError ? 'Error de Conexión' : 'Error'}
+              </h3>
+              <div className="text-sm text-muted-foreground whitespace-pre-line">{error}</div>
+              <div className="flex gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setError(null)}
+                >
+                  Cerrar
+                </Button>
+                {isConnectionError && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => authService.logout()}
+                  >
+                    Cerrar Sesión
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  Reintentar
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -285,43 +382,47 @@ export default function Checklist() {
 
   return (
     <div className="space-y-6">
-      {/* Sección de encabezado con título y contador */}
+      {/* ─────────────────────────────────────────────────────────
+          Encabezado - Título con gradiente para enfoque
+          ───────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="text-3xl font-bold tracking-tight text-gradient">
             Mis Checklists
           </h2>
           <p className="text-muted-foreground mt-1">
-            Gestiona tus tareas y mantente organizado
+            Organiza tus tareas y mantén el enfoque
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Badge que muestra cantidad de checklists con gramática correcta */}
-          <Badge variant="secondary" className="text-sm">
+          {/* Badge con contador - Azul Claro para información */}
+          <Badge variant="secondary" className="text-sm bg-info-light text-info border-info/30">
             {checklists.length} {checklists.length === 1 ? 'checklist' : 'checklists'}
           </Badge>
         </div>
       </div>
 
-      {/* Formulario para crear nuevo checklist */}
-      <Card className="border-dashed"> {/* Borde punteado para indicar elemento de creación */}
+      {/* ─────────────────────────────────────────────────────────
+          Formulario para crear nuevo checklist - Minimalista
+          ───────────────────────────────────────────────────────── */}
+      <Card className="border-dashed border-2 card-elevated hover:border-primary/30 transition-smooth">
         <CardContent className="pt-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Input
               type="text"
               placeholder="Nombre del nuevo checklist..."
               value={newItemTitle}
-              onChange={(e) => setNewItemTitle(e.target.value)} // Actualiza estado con cada escritura
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateChecklist()} // Permite crear con Enter
-              className="w-full"
-              aria-label="Nuevo nombre de checklist" // Etiqueta para accesibilidad
+              onChange={(e) => setNewItemTitle(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateChecklist()}
+              className="w-full input-enhanced text-lg"
+              aria-label="Nuevo nombre de checklist"
             />
             {types.length > 0 && (
               <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex-1 px-4 py-2.5 rounded-xl border-2 border-input bg-card dark:bg-gray-800 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-primary shadow-sm hover:shadow-medium hover:border-primary/50 transition-smooth cursor-pointer"
                   aria-label="Seleccionar tipo de tarea"
                 >
                   <option value="">Sin tipo</option>
@@ -333,8 +434,9 @@ export default function Checklist() {
                 </select>
                 <Button
                   onClick={handleCreateChecklist}
-                  disabled={!newItemTitle.trim() || isCreating} // Deshabilita si está vacío o creando
-                  loading={isCreating} // Muestra spinner durante creación
+                  disabled={!newItemTitle.trim() || isCreating}
+                  loading={isCreating}
+                  className="btn-primary-gradient shadow-soft"
                 >
                   {isCreating ? 'Creando...' : 'Crear Checklist'}
                 </Button>
@@ -343,9 +445,9 @@ export default function Checklist() {
             {types.length === 0 && (
               <Button
                 onClick={handleCreateChecklist}
-                disabled={!newItemTitle.trim() || isCreating} // Deshabilita si está vacío o creando
-                loading={isCreating} // Muestra spinner durante creación
-                className="w-full"
+                disabled={!newItemTitle.trim() || isCreating}
+                loading={isCreating}
+                className="w-full btn-primary-gradient shadow-soft"
               >
                 {isCreating ? 'Creando...' : 'Crear Checklist'}
               </Button>
@@ -354,17 +456,19 @@ export default function Checklist() {
         </CardContent>
       </Card>
 
-      {/* Lista de checklists - muestra estado vacío o lista de cards */}
-      {/* Filtro por tipo */}
+      {/* ─────────────────────────────────────────────────────────
+          Filtro por tipo - Calm, not distracting
+          ───────────────────────────────────────────────────────── */}
       {types.length > 0 && (
-        <Card>
+        <Card className="card-elevated">
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">Filtrar por tipo:</span>
+              <span className="text-sm font-medium text-muted-foreground">Filtrar:</span>
               <Button
                 size="sm"
                 variant={filterType === '' ? 'default' : 'outline'}
                 onClick={() => setFilterType('')}
+                className={filterType === '' ? 'btn-primary-gradient' : ''}
               >
                 Todos
               </Button>
@@ -374,10 +478,10 @@ export default function Checklist() {
                   size="sm"
                   variant={filterType === String(type.id) ? 'default' : 'outline'}
                   onClick={() => setFilterType(filterType === String(type.id) ? '' : String(type.id))}
-                  className="flex items-center gap-2"
+                  className={`flex items-center gap-2 ${filterType === String(type.id) ? 'btn-primary-gradient' : ''}`}
                 >
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-2.5 h-2.5 rounded-full shadow-soft"
                     style={{ backgroundColor: type.color }}
                   />
                   {type.nombre}
@@ -388,18 +492,21 @@ export default function Checklist() {
         </Card>
       )}
 
+      {/* ─────────────────────────────────────────────────────────
+          Lista de checklists - Empty state o cards
+          ───────────────────────────────────────────────────────── */}
       {checklists.length === 0 ? (
         <EmptyState
           icon={
-            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           }
-          title="No hay checklists aún"
-          description="Crea tu primer checklist para empezar a organizar tus tareas"
+          title="Empieza tu journey de productividad"
+          description="Crea tu primer checklist y comienza a organizar tus tareas"
           action={
-            <Button onClick={() => document.querySelector('input[aria-label="Nuevo nombre de checklist"]')?.focus()}>
-              Crear Checklist
+            <Button onClick={() => document.querySelector('input[aria-label="Nuevo nombre de checklist"]')?.focus()} className="btn-primary-gradient">
+              Crear Primer Checklist
             </Button>
           }
         />
@@ -416,22 +523,23 @@ export default function Checklist() {
             .map((checklist, index) => (
             <Card
               key={checklist.id}
-              className={`transition-all duration-300 hover:shadow-lg animate-slide-in`}
-              style={{ animationDelay: `${index * 0.1}s` }} // Retraso animación escalonado
+              className={`card-elevated animate-slide-in`}
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0"> {/* min-w-0 permite truncado de texto */}
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    {/* Header del checklist con color de tipo */}
+                    <div className="flex items-center gap-2 mb-2">
                       {checklist.color && (
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full shadow-soft"
                           style={{ backgroundColor: checklist.color }}
                           title={checklist.color}
                         />
                       )}
                       <CardTitle className="truncate">{checklist.title}</CardTitle>
-                      <Badge variant="outline" className="shrink-0">
+                      <Badge variant="outline" className="shrink-0 bg-muted/50">
                         {checklist.items.length} {checklist.items.length === 1 ? 'ítem' : 'ítems'}
                       </Badge>
                     </div>
@@ -439,13 +547,15 @@ export default function Checklist() {
                       {checklist.description}
                     </CardDescription>
                   </div>
-                  {/* Botones de acción para expandir/colapsar y eliminar */}
+
+                  {/* Botones de acción */}
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setExpandedChecklist(expandedChecklist === checklist.id ? null : checklist.id)} // Alterna estado expandido
+                      onClick={() => setExpandedChecklist(expandedChecklist === checklist.id ? null : checklist.id)}
                       aria-label={expandedChecklist === checklist.id ? 'Colapsar' : 'Expandir'}
+                      className="hover:bg-primary/5"
                     >
                       <svg
                         className={`w-4 h-4 transition-transform duration-200 ${expandedChecklist === checklist.id ? 'rotate-180' : ''}`}
@@ -459,9 +569,9 @@ export default function Checklist() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDeleteChecklist(checklist.id)} // Elimina checklist
+                      onClick={() => handleDeleteChecklist(checklist.id)}
                       aria-label="Eliminar checklist"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/5"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -470,24 +580,31 @@ export default function Checklist() {
                   </div>
                 </div>
 
-                {/* Barra de progreso visual */}
-                <div className="mt-4">
+                {/* ─────────────────────────────────────────────────────────
+                    Barra de progreso con gradiente satisfactorio
+                    ───────────────────────────────────────────────────────── */}
+                <div className="mt-5">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Progreso</span>
-                    <span className="text-sm font-medium">{getProgress(checklist.items)}%</span>
+                    <span className="text-sm font-medium text-muted-foreground">Progreso</span>
+                    <span className={`text-sm font-bold ${getProgress(checklist.items) === 100 ? 'text-success' : 'text-foreground'}`}>
+                      {getProgress(checklist.items)}%
+                    </span>
                   </div>
-                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-muted rounded-full overflow-hidden shadow-soft">
                     <div
-                      className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-                      style={{ width: `${getProgress(checklist.items)}%` }} // Ancho dinámico según progreso
-                    />
+                      className={`h-full progress-gradient transition-all duration-500 ease-out rounded-full relative ${getProgress(checklist.items) === 100 ? 'progress-animated' : ''}`}
+                      style={{ width: `${getProgress(checklist.items)}%` }}
+                    >
+                      {/* Shine effect for visual polish */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                    </div>
                   </div>
                 </div>
               </CardHeader>
 
               {/* Contenido expandido con lista de ítems */}
               {expandedChecklist === checklist.id && (
-                <CardContent className="border-t">
+                <CardContent className="border-t bg-muted/10">
                   <ChecklistItems
                     items={checklist.items}
                     onToggle={(itemId) => handleToggleItem(checklist.id, itemId)}
@@ -505,7 +622,16 @@ export default function Checklist() {
   )
 }
 
-// Componente hijo para gestionar ítems individuales de un checklist
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * CHECKLIST ITEMS - Sub-component for task items
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * Features:
+ * • Custom checkbox with Azul Verdoso (satisfying completion)
+ * • Smooth transitions for all states
+ * • Minimalist design for focus
+ */
 function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
   const [newItemText, setNewItemText] = useState('') // Estado local para input de nuevo ítem
 
@@ -517,23 +643,27 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Sección para agregar nuevo ítem */}
+    <div className="space-y-4">
+      {/* ─────────────────────────────────────────────────────────
+          Input para agregar nuevo ítem
+          ───────────────────────────────────────────────────────── */}
       <div className="flex gap-2">
         <Input
           type="text"
           placeholder="Agregar nuevo ítem..."
           value={newItemText}
           onChange={(e) => setNewItemText(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleAdd()} // Permite agregar con Enter
+          onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
           aria-label="Nuevo ítem de checklist"
+          className="input-enhanced"
         />
         <Button
           onClick={handleAdd}
-          disabled={!newItemText.trim()} // Deshabilita si está vacío
+          disabled={!newItemText.trim()}
           size="icon"
           variant="default"
           aria-label="Agregar ítem"
+          className="btn-primary-gradient shadow-soft"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -541,16 +671,18 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
         </Button>
       </div>
 
-      {/* Lista de ítems existentes */}
+      {/* ─────────────────────────────────────────────────────────
+          Lista de ítems existentes
+          ───────────────────────────────────────────────────────── */}
       {items.length === 0 ? (
         <EmptyState
           icon={
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           }
-          title="No hay ítems"
-          description="Agrega ítems a este checklist para comenzar"
+          title="Sin ítems"
+          description="Agrega tu primer ítem para comenzar"
           className="py-8"
         />
       ) : (
@@ -559,50 +691,52 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
             <li key={item.id}>
               <div
                 className={`
-                  group flex items-start gap-3 p-3 rounded-lg border
+                  group flex items-start gap-3 p-4 rounded-xl border
                   transition-all duration-200
                   ${item.checked
-                    ? 'bg-muted/50 border-muted-foreground/20' // Estilos para ítem completado
-                    : 'bg-card border-border hover:border-primary/50 hover:shadow-sm' // Estilos para ítem pendiente
+                    ? 'bg-success/5 border-success/20'
+                    : 'bg-card border-border hover:border-primary/30 hover:shadow-soft'
                   }
                 `}
               >
-                {/* Checkbox personalizado */}
+                {/* ─────────────────────────────────────────────────────────
+                    Checkbox personalizado con Azul Verdoso (satisfactorio)
+                    ───────────────────────────────────────────────────────── */}
                 <button
-                  onClick={() => onToggle(item.id)} // Alterna estado completado
+                  onClick={() => onToggle(item.id)}
                   className={`
-                    flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200
+                    flex-shrink-0 w-6 h-6 mt-0.5 rounded-lg border-2 transition-all duration-200
                     ${item.checked
-                      ? 'border-primary bg-primary text-primary-foreground' // Checkbox marcado
-                      : 'border-input bg-background hover:border-primary' // Checkbox sin marcar
+                      ? 'border-success bg-success text-white shadow-medium'
+                      : 'border-input bg-background hover:border-primary hover:shadow-soft'
                     }
-                    focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
+                    focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 focus:ring-offset-background
                   `}
                   aria-label={item.checked ? 'Marcar como incompleto' : 'Marcar como completo'}
                 >
                   {item.checked && (
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </button>
 
-                {/* Contenido del ítem con texto tachado si está completado */}
+                {/* Contenido del ítem */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {item.tipo && (
                       <div
-                        className="w-2 h-2 rounded-full shrink-0"
+                        className="w-2 h-2 rounded-full shrink-0 shadow-soft"
                         style={{ backgroundColor: item.tipo.color }}
                         title={item.tipo.nombre}
                       />
                     )}
                     <p
                       className={`
-                        text-sm transition-all duration-200
+                        text-base transition-all duration-200 font-medium
                         ${item.checked
-                          ? 'text-muted-foreground line-through' // Estilo para completados
-                          : 'text-foreground' // Estilo para pendientes
+                          ? 'text-muted-foreground line-through'
+                          : 'text-foreground'
                         }
                       `}
                     >
@@ -611,11 +745,11 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
                   </div>
                 </div>
 
-                {/* Botón de eliminar (visible solo al hover del grupo) */}
+                {/* Botón de eliminar (visible solo al hover) */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
-                    onClick={() => onDelete(item.id)} // Elimina ítem
-                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-all duration-200"
+                    onClick={() => onDelete(item.id)}
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all duration-200 focus-ring"
                     aria-label={`Eliminar "${item.description}"`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,112 +2,188 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  ═══════════════════════════════════════════════════════════════════
+  CHECKLISTAPP - SHARED DESIGN SYSTEM (Web + Mobile)
+  ═══════════════════════════════════════════════════════════════════
 
+  This file contains THE OFFICIAL theme definitions for ChecklistApp.
+  All apps (web, mobile) consume these shared styles.
+
+  Paleta de colores del logo:
+  • Azul Oscuro (#326cc3) - Enfoque, acciones principales
+  • Azul Claro (#55a2d2) - Calma, elementos secundarios
+  • Azul Verdoso (#3cc1a2) - Logros, progreso, éxito
+*/
 @layer base {
   :root {
-    /* ------------------------------------------
-       TEMA CLARO (LIGHT) 
-       ------------------------------------------ */
-    
-    /* Fondo: Tu blanco grisáceo (#dcdfe0) */
-    --background: 220 223 224;
-    
-    /* Texto: Azul casi negro para máximo contraste */
-    --foreground: 15 23 42; 
+    /* ─────────────────────────────────────────────────────────
+       LIGHT THEME - Cool white tones for focus
+       ───────────────────────────────────────────────────────── */
 
-    /* Tarjetas: Blanco puro para elevar sobre el fondo gris */
-    --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    /* Background: Blanco casi puro */
+    --background: 0 0% 98%;
 
-    /* Popovers: Igual que las tarjetas */
-    --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
+    /* Foreground: Gris oscuro frío */
+    --foreground: 210 20% 12%;
 
-    /* Primary: Tu Azul Oscuro (#326cc3) */
-    --primary: 50 108 195;
+    /* Cards: Blanco puro */
+    --card: 0 0% 100%;
+    --card-foreground: 210 20% 12%;
+
+    /* Popovers: Igual que cards */
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 20% 12%;
+
+    /* ─────────────────────────────────────────────────────────
+       PRIMARY COLORS (Logo Palette)
+       ───────────────────────────────────────────────────────── */
+
+    /* Primary: Azul Oscuro (#326cc3) */
+    --primary: 217 77% 48%;
     --primary-foreground: 255 255 255;
 
-    /* Secondary: Tu Azul Claro (#55a2d2) */
-    --secondary: 85 162 210;
+    /* Secondary: Azul Claro (#55a2d2) */
+    --secondary: 199 59% 58%;
     --secondary-foreground: 255 255 255;
 
-    /* Muted: Gris suave para elementos inactivos */
-    --muted: 226 232 240;
-    /* Muted Foreground: Tu color Gris base (#8d929b) */
-    --muted-foreground: 141 146 155;
-
-    /* Accent: Tu Azul Verdoso del logo (#3cc1a2) */
-    --accent: 60 193 162;
+    /* Accent: Azul Verdoso (#3cc1a2) */
+    --accent: 168 74% 50%;
     --accent-foreground: 255 255 255;
 
-    /* Destructive: Rojo para alertas y eliminar */
-    --destructive: 239 68 68;
-    --destructive-foreground: 255 255 255;
+    /* ─────────────────────────────────────────────────────────
+       NEUTRAL COLORS
+       ───────────────────────────────────────────────────────── */
 
-    /* Bordes e Inputs: Gris neutro armonizado */
-    --border: 203 213 225;
-    --input: 203 213 225;
-    
-    /* Ring: Azul principal para foco de accesibilidad */
-    --ring: 50 108 195;
-    
-    /* Gráficos y Visualización */
-    --chart-1: 50 108 195; /* Azul oscuro */
-    --chart-2: 60 193 162; /* Azul verdoso */
-    --chart-3: 85 162 210; /* Azul claro */
-    --chart-4: 141 146 155; /* Gris */
-    --chart-5: 30 41 59;    /* Azul noche */
-    
+    /* Muted: Gris muy claro frío */
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 15% 45%;
+
+    /* Destructive: Rojo */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+
+    /* Focus ring */
+    --ring: 217 77% 48%;
+
+    /* ─────────────────────────────────────────────────────────
+       SEMANTIC STATE COLORS
+       ───────────────────────────────────────────────────────── */
+
+    --success: 168 74% 50%;
+    --success-foreground: 255 255 255;
+    --success-light: 168 74% 95%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 255 255 255;
+    --warning-light: 38 92% 96%;
+
+    --info: 199 59% 58%;
+    --info-foreground: 255 255 255;
+    --info-light: 199 59% 95%;
+
+    --progress: 168 74% 50%;
+    --progress-foreground: 255 255 255;
+    --progress-light: 168 74% 95%;
+
+    /* ─────────────────────────────────────────────────────────
+       GRADIENTS
+       ───────────────────────────────────────────────────────── */
+
+    --gradient-primary: linear-gradient(135deg, hsl(217 77% 48%) 0%, hsl(199 59% 58%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(168 74% 50%) 0%, hsl(199 59% 58%) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(217 77% 48% / 0.03) 0%, hsl(199 59% 58% / 0.03) 100%);
+
+    /* Charts */
+    --chart-1: 217 77% 48%;
+    --chart-2: 168 74% 50%;
+    --chart-3: 199 59% 58%;
+    --chart-4: 141 146 155;
+    --chart-5: 15 23 42;
+
     --radius: 0.5rem;
   }
 
   .dark {
-    /* ------------------------------------------
-       TEMA OSCURO (DARK) 
-       ------------------------------------------ */
-    
-    /* Fondo: Azul noche profundo (deriva del logo) */
+    /* ─────────────────────────────────────────────────────────
+       DARK THEME - Blue night for eye comfort
+       ───────────────────────────────────────────────────────── */
+
+    /* Background: Azul noche profundo */
     --background: 15 23 42;
-    
-    /* Texto: Tu blanco grisáceo (#dcdfe0) */
+
+    /* Foreground: Gris claro */
     --foreground: 220 223 224;
 
-    /* Tarjetas: Un tono más claro que el fondo para dar profundidad */
+    /* Cards: Un poco más claro */
     --card: 30 41 59;
     --card-foreground: 220 223 224;
 
     --popover: 30 41 59;
     --popover-foreground: 220 223 224;
 
-    /* Primary: Usamos el Azul Claro (#55a2d2) para mejor brillo en oscuro */
-    --primary: 85 162 210;
+    /* ─────────────────────────────────────────────────────────
+       PRIMARY COLORS IN DARK MODE
+       ───────────────────────────────────────────────────────── */
+
+    /* Primary: Azul Claro (más brillante) */
+    --primary: 199 59% 58%;
     --primary-foreground: 15 23 42;
 
-    /* Secondary: El Azul Oscuro se vuelve secundario */
-    --secondary: 50 108 195;
+    /* Secondary: Azul Oscuro */
+    --secondary: 217 77% 48%;
     --secondary-foreground: 255 255 255;
 
-    /* Muted: Tonos oscuros apagados */
+    /* Accent: Azul Verdoso vibrante */
+    --accent: 168 74% 50%;
+    --accent-foreground: 15 23 42;
+
     --muted: 51 65 85;
     --muted-foreground: 141 146 155;
 
-    /* Accent: Tu Azul Verdoso se mantiene como detalle vibrante */
-    --accent: 60 193 162;
-    --accent-foreground: 15 23 42;
-
-    --destructive: 127 29 29;
+    --destructive: 0 62% 30%;
     --destructive-foreground: 220 223 224;
 
-    /* Bordes: Más oscuros para no generar ruido visual */
     --border: 51 65 85;
     --input: 51 65 85;
-    
-    --ring: 85 162 210;
 
-    /* Gráficos ajustados para fondo oscuro */
-    --chart-1: 85 162 210;
-    --chart-2: 60 193 162;
-    --chart-3: 50 108 195;
+    --ring: 199 59% 58%;
+
+    /* ─────────────────────────────────────────────────────────
+       STATE COLORS IN DARK MODE
+       ───────────────────────────────────────────────────────── */
+
+    --success: 168 74% 55%;
+    --success-foreground: 255 255 255;
+    --success-light: 168 74% 20%;
+
+    --warning: 38 92% 60%;
+    --warning-foreground: 255 255 255;
+    --warning-light: 38 92% 20%;
+
+    --info: 199 59% 65%;
+    --info-foreground: 255 255 255;
+    --info-light: 199 59% 20%;
+
+    --progress: 168 74% 65%;
+    --progress-foreground: 255 255 255;
+    --progress-light: 168 74% 20%;
+
+    /* ─────────────────────────────────────────────────────────
+       GRADIENTS IN DARK MODE
+       ───────────────────────────────────────────────────────── */
+
+    --gradient-primary: linear-gradient(135deg, hsl(199 59% 58%) 0%, hsl(217 77% 48%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(168 74% 55%) 0%, hsl(199 59% 58%) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(199 59% 58% / 0.1) 0%, hsl(217 77% 48% / 0.1) 100%);
+
+    --chart-1: 199 59% 58%;
+    --chart-2: 168 74% 55%;
+    --chart-3: 217 77% 48%;
     --chart-4: 148 163 184;
     --chart-5: 203 213 225;
   }
@@ -119,10 +195,289 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Custom animations */
+/* ─────────────────────────────────────────────────────────────────────
+   SHARED UTILITIES (Used by web + mobile)
+   ───────────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* ─────────────────────────────────────────────────────────
+     SHADOW SYSTEM
+     ───────────────────────────────────────────────────────── */
+
+  .shadow-soft {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04),
+                0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-medium {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06),
+                0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-strong {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+                0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-stronger {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08),
+                0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     TRANSITIONS
+     ───────────────────────────────────────────────────────── */
+
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-click {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     HOVER STATES
+     ───────────────────────────────────────────────────────── */
+
+  .hover-lift {
+    @apply transition-smooth;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .hover-scale {
+    @apply transition-smooth;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     FOCUS STATES
+     ───────────────────────────────────────────────────────── */
+
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .focus-ring-offset {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     BACKGROUNDS
+     ───────────────────────────────────────────────────────── */
+
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .bg-gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .bg-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     BADGES
+     ───────────────────────────────────────────────────────── */
+
+  .badge-success {
+    @apply bg-success-light text-success border border-success/20 font-medium px-2.5 py-1 rounded-md text-sm;
+  }
+
+  .badge-warning {
+    @apply bg-warning-light text-warning border border-warning/20 font-medium px-2.5 py-1 rounded-md text-sm;
+  }
+
+  .badge-info {
+    @apply bg-info-light text-info border border-info/20 font-medium px-2.5 py-1 rounded-md text-sm;
+  }
+
+  .badge-progress {
+    @apply bg-progress-light text-progress border border-progress/20 font-medium px-2.5 py-1 rounded-md text-sm;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     CARDS
+     ───────────────────────────────────────────────────────── */
+
+  .card-elevated {
+    @apply shadow-soft hover:shadow-medium transition-smooth;
+  }
+
+  .card-premium {
+    @apply shadow-soft hover:shadow-stronger transition-smooth relative overflow-hidden bg-white;
+  }
+
+  .card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  .card-premium:hover::before {
+    opacity: 1;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     INPUTS
+     ───────────────────────────────────────────────────────── */
+
+  .input-enhanced {
+    @apply bg-white dark:bg-gray-800 border-2 border-input shadow-sm hover:shadow-medium hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-smooth;
+  }
+
+  .input-subtle {
+    @apply bg-gray-50/50 dark:bg-gray-800/50 border-2 border-input shadow-sm hover:bg-white dark:hover:bg-gray-800 hover:shadow-medium focus:border-primary focus:ring-2 focus:ring-primary/10 transition-smooth;
+  }
+
+  .input-standard {
+    @apply bg-white dark:bg-gray-800 border-2 border-input shadow-sm hover:shadow-medium hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-smooth;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     SELECT ELEMENTS
+     ───────────────────────────────────────────────────────── */
+
+  select {
+    @apply bg-white dark:bg-gray-800 border-2 border-input shadow-sm hover:shadow-md hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background transition-smooth cursor-pointer;
+  }
+
+  .dark select {
+    @apply bg-gray-800 border-gray-600 text-gray-100;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     PROGRESS BARS
+     ───────────────────────────────────────────────────────── */
+
+  .progress-gradient {
+    background: var(--gradient-success);
+    box-shadow: 0 0 8px rgba(60, 193, 162, 0.25);
+  }
+
+  .progress-animated {
+    background: var(--gradient-success);
+    box-shadow: 0 0 8px rgba(60, 193, 162, 0.25);
+    animation: progress-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes progress-pulse {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba(60, 193, 162, 0.25);
+    }
+    50% {
+      box-shadow: 0 0 12px rgba(60, 193, 162, 0.4);
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     SCROLLBARS
+     ───────────────────────────────────────────────────────── */
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(210 20% 70% / 0.5) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(210 20% 70% / 0.5);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(210 20% 50% / 0.7);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     TEXT STYLES
+     ───────────────────────────────────────────────────────── */
+
+  .text-subtle {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .text-emphasis {
+    color: hsl(var(--primary));
+    font-weight: 600;
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     CHECKBOX STYLES
+     ───────────────────────────────────────────────────────── */
+
+  .checkbox-custom {
+    @apply w-5 h-5 rounded border-2 transition-all duration-200;
+    border-color: hsl(210 20% 80%);
+    background-color: hsl(0 0% 100%);
+  }
+
+  .checkbox-custom:hover {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
+  }
+
+  .checkbox-custom.checked {
+    background: hsl(var(--success));
+    border-color: hsl(var(--success));
+    box-shadow: 0 2px 8px rgba(60, 193, 162, 0.25);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     BUTTON STYLES
+     ───────────────────────────────────────────────────────── */
+
+  .btn-primary-gradient {
+    @apply bg-gradient-primary text-white font-medium px-4 py-2 rounded-lg shadow-soft hover:shadow-medium transition-smooth focus-ring;
+  }
+
+  .btn-secondary-outline {
+    @apply border-2 border-primary text-primary font-medium px-4 py-2 rounded-lg hover:bg-primary/5 transition-smooth focus-ring;
+  }
+
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-muted/50 font-medium px-4 py-2 rounded-lg transition-smooth focus-ring;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────────────────────────────────── */
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -156,6 +511,20 @@
   }
 }
 
+@keyframes checkmark-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
@@ -168,28 +537,51 @@
   animation: scale-in 0.2s ease-out;
 }
 
-/* Focus visible styles for better accessibility */
-*{
-  @apply transition-colors duration-500 ease-in-out;
-}
+/* ─────────────────────────────────────────────────────────────────────
+   GLOBAL STYLES
+   ───────────────────────────────────────────────────────────────────── */
+
 *:focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
 
-/* Custom scrollbar */
+* {
+  @apply transition-colors duration-200 ease-in-out;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   CUSTOM SCROLLBAR
+   ───────────────────────────────────────────────────────────────────── */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary;
+  background: hsl(210 20% 96% / 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-md;
+  background: hsl(210 20% 70% / 0.5);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+  background: hsl(210 20% 50% / 0.7);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   PRINT STYLES
+   ───────────────────────────────────────────────────────────────────── */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

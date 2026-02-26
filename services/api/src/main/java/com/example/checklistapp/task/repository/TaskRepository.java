@@ -38,27 +38,27 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     Long countCompletedTasksByDate(@Param("userId") Integer userId, @Param("date") LocalDate date);
 
     @Query("SELECT t FROM Task t " +
-           "JOIN FETCH t.usuario " +
+           "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
            "WHERE t.id = :id")
     Optional<Task> findByIdWithUsuarioAndTipo(@Param("id") Integer id);
 
     @Query("SELECT t FROM Task t " +
-           "JOIN FETCH t.usuario " +
+           "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
            "WHERE t.idUsuario = :idUsuario " +
            "ORDER BY t.fechaCreacion DESC")
     List<Task> findByIdUsuarioWithUsuarioAndTipo(@Param("idUsuario") Integer idUsuario);
 
     @Query(value = "SELECT t FROM Task t " +
-                   "JOIN FETCH t.usuario " +
+                   "LEFT JOIN FETCH t.usuario " +
                    "LEFT JOIN FETCH t.tipo " +
                    "ORDER BY t.fechaCreacion DESC",
            countQuery = "SELECT COUNT(t) FROM Task t")
     Page<Task> findAllWithUsuarioAndTipo(Pageable pageable);
 
     @Query("SELECT t FROM Task t " +
-           "JOIN FETCH t.usuario " +
+           "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
            "WHERE t.idUsuario = :idUsuario AND t.completada = false " +
            "ORDER BY t.fechaProgramacion")

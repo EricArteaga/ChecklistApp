@@ -41,8 +41,12 @@ public class TaskService {
 
     @Transactional
     public TaskResponseDTO create(CreateTaskDTO dto) {
-        User usuario = userRepository.findById(dto.idUsuario())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario", dto.idUsuario()));
+        // Soporte para tareas anónimas (sin usuario)
+        User usuario = null;
+        if (dto.idUsuario() != null) {
+            usuario = userRepository.findById(dto.idUsuario())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario", dto.idUsuario()));
+        }
 
         Type tipo = null;
         if (dto.idTipo() != null) {

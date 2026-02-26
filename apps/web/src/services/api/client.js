@@ -47,10 +47,24 @@ apiClient.interceptors.response.use(
       const { status, data } = error.response
 
       switch (status) {
+        case 400:
+          // Bad Request - Error de validación
+          if (data.fields && typeof data.fields === 'object') {
+            // Error de validación con detalles de campos
+            const fieldErrors = Object.entries(data.fields)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join('\n')
+            return Promise.reject(new Error(`Error de validación:\n${fieldErrors}`))
+          }
+          return Promise.reject(new Error(data.message || 'Solicitud inválida'))
+
         case 401:
           // No autorizado - Token inválido o expirado
           localStorage.removeItem('token')
-          window.location.href = '/login'
+          // Solo redirigir si no estamos ya en login o register
+          if (!window.location.pathname.match(/\/(login|register)/)) {
+            window.location.href = '/login'
+          }
           return Promise.reject(new Error('Sesión expirada. Por favor, inicia sesión nuevamente.'))
 
         case 403:
@@ -71,7 +85,16 @@ apiClient.interceptors.response.use(
       }
     } else if (error.request) {
       // El request se hizo pero no se recibió respuesta
-      return Promise.reject(new Error('No se pudo conectar con el servidor. Verifica tu conexión.'))
+      // Esto puede ser porque el backend no está corriendo o hay problemas de red
+      const connectionError = new Error(
+        'No se pudo conectar con el servidor.\n\n' +
+        'Verifica que:\n' +
+        '• El backend esté corriendo (ejecuta start-backend.ps1)\n' +
+        '• El servidor esté en http://localhost:8080\n' +
+        '• Tu conexión a internet esté activa'
+      )
+      connectionError.isConnectionError = true // Marcar para identificación fácil
+      return Promise.reject(connectionError)
     } else {
       // Error al configurar el request
       return Promise.reject(new Error('Error al configurar la petición'))

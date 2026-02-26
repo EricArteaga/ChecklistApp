@@ -5,6 +5,7 @@ import Heatmap from '../features/heatmap/Heatmap'
 import TypeManagement from '../features/types/TypeManagement'
 import Login from '../features/auth/Login'
 import Register from '../features/auth/Register'
+import Sidebar from '../components/Sidebar'
 import authService from '../services/authService'
 import sprite from '../../../../packages/lib/sprite.svg'
 
@@ -17,15 +18,8 @@ const tabs = [
 
 const themes = ["light", "dark"]
 
-// Componente protegido: Solo accesible si está autenticado
-function ProtectedRoute({ children }) {
-  const isAuth = authService.isAuthenticated()
-  return isAuth ? children : <Navigate to="/login" replace />
-}
-
 // Componente principal del layout con navegación
 function MainLayout() {
-  const navigate = useNavigate()
   const [view, setView] = useState('checklist')
   const [mounted, setMounted] = useState(false)
   const [theme, setTheme] = useState(themes[0])
@@ -34,15 +28,13 @@ function MainLayout() {
     setMounted(true)
   }, [])
 
-  const handleLogout = () => {
-    authService.logout()
-    navigate('/login')
-  }
-
   return (
-    <div className={`mx-auto flex flex-col min-h-dvh bg-gradient-to-br from-gray-900 via-gray-700 to-gray-900 ${theme}`}>
+    <div className={`mx-auto flex flex-col min-h-dvh bg-background text-foreground ${theme === 'dark' ? 'dark' : ''}`}>
+      {/* Sidebar */}
+      <Sidebar />
+
       {/* Header */}
-      <header className="border-b bg-card/70 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/70 backdrop-blur-sm sticky top-0 z-10 pl-16">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Branding */}
@@ -64,6 +56,7 @@ function MainLayout() {
                 <button
                   onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
                   className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
+                  aria-label="Cambiar tema"
                 >
                   {theme === themes[0] ? '🌙' : '☀️'}
                 </button>
@@ -103,20 +96,12 @@ function MainLayout() {
                 </button>
               ))}
             </nav>
-
-            {/* Logout button */}
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 text-sm bg-destructive/10 text-destructive rounded-md hover:bg-destructive/20 transition-colors"
-            >
-              Cerrar Sesión
-            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container flex-grow mx-auto px-4 py-8 max-w-6xl">
+      <main className="container flex-grow mx-auto px-4 py-8 max-w-6xl pl-20">
         <div
           id={`${view}-panel`}
           role="tabpanel"
@@ -141,23 +126,16 @@ function MainLayout() {
   )
 }
 
-// App principal con rutas
+// App principal con rutas (autenticación opcional)
 export default function App() {
   return (
     <Routes>
-      {/* Rutas públicas */}
+      {/* Rutas de autenticación */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Rutas protegidas */}
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      />
+      {/* Ruta principal: accesible sin autenticación */}
+      <Route path="/*" element={<MainLayout />} />
     </Routes>
   )
 }

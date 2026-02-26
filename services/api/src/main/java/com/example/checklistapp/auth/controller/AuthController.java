@@ -14,12 +14,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Controlador de autenticación
  *
  * Endpoints públicos (no requieren autenticación):
  * - POST /api/auth/register - Registro
  * - POST /api/auth/login - Login
+ * - GET /api/auth/health - Health check (verificar si el backend está corriendo)
  *
  * Endpoints protegidos (requieren JWT):
  * - GET /api/auth/me - Obtener usuario actual
@@ -60,6 +64,20 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginDTO dto) {
         AuthResponseDTO response = authService.login(dto);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Health check - Verificar si el backend está corriendo
+     * GET /api/auth/health
+     * Endpoint público (no requiere autenticación)
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, String>> health() {
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "ChecklistApp API");
+        response.put("timestamp", java.time.LocalDateTime.now().toString());
         return ResponseEntity.ok(response);
     }
 

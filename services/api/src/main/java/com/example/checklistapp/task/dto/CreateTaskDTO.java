@@ -16,7 +16,7 @@ public record CreateTaskDTO(
     @Size(max = 1000, message = "La descripción no puede exceder 1000 caracteres")
     String descripcion,
 
-    @NotNull(message = "El usuario es obligatorio")
+    // Usuario opcional para soportar tareas anónimas
     Integer idUsuario,
 
     Integer idTipo,

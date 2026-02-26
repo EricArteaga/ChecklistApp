@@ -20,7 +20,8 @@ public class Task {
     @Column(length = 1000)
     private String descripcion;
 
-    @Column(nullable = false, name = "id_usuario")
+    // Usuario opcional para soportar tareas anónimas
+    @Column(name = "id_usuario")
     private Integer idUsuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
