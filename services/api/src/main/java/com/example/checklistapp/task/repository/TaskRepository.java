@@ -40,12 +40,14 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     @Query("SELECT t FROM Task t " +
            "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
+           "LEFT JOIN FETCH t.subitems " +
            "WHERE t.id = :id")
     Optional<Task> findByIdWithUsuarioAndTipo(@Param("id") Integer id);
 
     @Query("SELECT t FROM Task t " +
            "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
+           "LEFT JOIN FETCH t.subitems " +
            "WHERE t.idUsuario = :idUsuario " +
            "ORDER BY t.fechaCreacion DESC")
     List<Task> findByIdUsuarioWithUsuarioAndTipo(@Param("idUsuario") Integer idUsuario);
@@ -53,6 +55,7 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     @Query(value = "SELECT t FROM Task t " +
                    "LEFT JOIN FETCH t.usuario " +
                    "LEFT JOIN FETCH t.tipo " +
+                   "LEFT JOIN FETCH t.subitems " +
                    "ORDER BY t.fechaCreacion DESC",
            countQuery = "SELECT COUNT(t) FROM Task t")
     Page<Task> findAllWithUsuarioAndTipo(Pageable pageable);
@@ -60,6 +63,7 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     @Query("SELECT t FROM Task t " +
            "LEFT JOIN FETCH t.usuario " +
            "LEFT JOIN FETCH t.tipo " +
+           "LEFT JOIN FETCH t.subitems " +
            "WHERE t.idUsuario = :idUsuario AND t.completada = false " +
            "ORDER BY t.fechaProgramacion")
     List<Task> findPendingTasksWithUsuarioAndTipo(@Param("idUsuario") Integer idUsuario);

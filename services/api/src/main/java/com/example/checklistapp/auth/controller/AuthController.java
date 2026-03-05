@@ -27,10 +27,11 @@ import java.util.Map;
  *
  * Endpoints protegidos (requieren JWT):
  * - GET /api/auth/me - Obtener usuario actual
+ *
+ * Nota: CORS se maneja globalmente en SecurityConfig, no se requiere @CrossOrigin
  */
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthService authService;

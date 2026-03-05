@@ -119,7 +119,7 @@ class TaskServiceTest {
                 null  // fechaRealizacion
         );
 
-        // DTO de respuesta esperado (orden: id, nombre, descripcion, fechaCreacion, fechaProgramacion, fechaRealizacion, completada, usuario, tipo)
+        // DTO de respuesta esperado (orden: id, nombre, descripcion, fechaCreacion, fechaProgramacion, fechaRealizacion, completada, usuario, tipo, subitems)
         taskResponseDTO = new TaskResponseDTO(
                 1,
                 "Completar reporte",
@@ -129,7 +129,8 @@ class TaskServiceTest {
                 null, // fechaRealizacion
                 false,
                 userSummaryDTO,
-                typeSummaryDTO
+                typeSummaryDTO,
+                List.of() // subitems vacío
         );
     }
 

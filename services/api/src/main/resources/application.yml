@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DB_URL}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL_LOCAL}}
     username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER}}
     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD}}
   jpa:

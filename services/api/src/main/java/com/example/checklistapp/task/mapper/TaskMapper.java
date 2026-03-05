@@ -14,7 +14,11 @@ import java.util.List;
 
 @Mapper(
     componentModel = "spring",
-    uses = {com.example.checklistapp.user.mapper.UserMapper.class, com.example.checklistapp.type.mapper.TypeMapper.class}
+    uses = {
+        com.example.checklistapp.user.mapper.UserMapper.class,
+        com.example.checklistapp.type.mapper.TypeMapper.class,
+        com.example.checklistapp.subitem.mapper.SubitemMapper.class
+    }
 )
 public interface TaskMapper {
 
@@ -22,6 +26,7 @@ public interface TaskMapper {
     @Mapping(target = "fechaCreacion", ignore = true)
     @Mapping(target = "usuario", ignore = true)
     @Mapping(target = "tipo", ignore = true)
+    @Mapping(target = "subitems", ignore = true)
     Task toEntity(CreateTaskDTO dto);
 
     @Mapping(source = "usuario", target = "usuario")
@@ -39,6 +44,7 @@ public interface TaskMapper {
     @Mapping(target = "fechaCreacion", ignore = true)
     @Mapping(target = "usuario", ignore = true)
     @Mapping(target = "tipo", ignore = true)
+    @Mapping(target = "subitems", ignore = true)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDTO(UpdateTaskDTO dto, @MappingTarget Task entity);
 }

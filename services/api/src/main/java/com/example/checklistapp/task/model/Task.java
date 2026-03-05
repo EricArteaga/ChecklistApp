@@ -1,10 +1,14 @@
 package com.example.checklistapp.task.model;
 
+import com.example.checklistapp.subitem.model.Subitem;
 import com.example.checklistapp.type.model.Type;
 import com.example.checklistapp.user.model.User;
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tareas")
@@ -47,12 +51,25 @@ public class Task {
     @Column(nullable = false)
     private Boolean completada = false;
 
+    @OneToMany(mappedBy = "tarea", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Subitem> subitems = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         fechaCreacion = LocalDateTime.now();
         if (completada == null) {
             completada = false;
         }
+    }
+
+    public void addSubitem(Subitem subitem) {
+        subitems.add(subitem);
+        subitem.setTarea(this);
+    }
+
+    public void removeSubitem(Subitem subitem) {
+        subitems.remove(subitem);
+        subitem.setTarea(null);
     }
 
     public Integer getId() { return id; }
@@ -87,4 +104,7 @@ public class Task {
 
     public Boolean getCompletada() { return completada; }
     public void setCompletada(Boolean completada) { this.completada = completada; }
+
+    public List<Subitem> getSubitems() { return subitems; }
+    public void setSubitems(List<Subitem> subitems) { this.subitems = subitems; }
 }
