@@ -5,11 +5,12 @@
 
 import axios from 'axios'
 import { API_BASE_URL } from './config'
+import authService from '../authService'
 
 // Crear instancia de Axios con configuración base
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // 10 segundos
+  timeout: 30000, // 30 segundos para sync de múltiples tareas
   headers: {
     'Content-Type': 'application/json'
   }
@@ -60,11 +61,7 @@ apiClient.interceptors.response.use(
 
         case 401:
           // No autorizado - Token inválido o expirado
-          localStorage.removeItem('token')
-          // Solo redirigir si no estamos ya en login o register
-          if (!window.location.pathname.match(/\/(login|register)/)) {
-            window.location.href = '/login'
-          }
+          authService.handleUnauthorized('Sesión expirada')
           return Promise.reject(new Error('Sesión expirada. Por favor, inicia sesión nuevamente.'))
 
         case 403:

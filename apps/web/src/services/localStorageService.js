@@ -46,9 +46,21 @@ export const addTask = (task) => {
   const tasks = getTasks()
   const newTask = {
     ...task,
-    id: task.id || Date.now(), // Generar ID si no tiene
-    createdAt: task.createdAt || new Date().toISOString()
+    id: task.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // ID único con timestamp + random
+    createdAt: task.createdAt || new Date().toISOString(),
+    subitems: task.subitems || [] // ✅ AGREGAR: Inicializar array vacío de subitems
   }
+
+  // Validar que el ID sea único antes de guardar
+  if (tasks.some(t => t.id === newTask.id)) {
+    console.error(`ID duplicado detectado: ${newTask.id}. Regenerando...`)
+    // Reintentar con un nuevo ID
+    return addTask({
+      ...task,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    })
+  }
+
   tasks.push(newTask)
   saveTasks(tasks)
   return newTask
@@ -120,6 +132,103 @@ export const clearSyncedMarks = () => {
   localStorage.removeItem(SYNCED_KEY)
 }
 
+/**
+ * Agrega un subitem a una tarea
+ * @param {string} taskId - ID de la tarea
+ * @param {Object} subitem - Subitem a agregar { description, checked }
+ * @returns {Object} Subitem agregado con ID generado
+ */
+export const addSubitem = (taskId, subitem) => {
+  const tasks = getTasks()
+  const index = tasks.findIndex(t => t.id === taskId)
+  if (index === -1) {
+    console.error(`Tarea ${taskId} no encontrada`)
+    return null
+  }
+
+  const newSubitem = {
+    id: subitem.id || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    description: subitem.description?.trim() || '',
+    checked: subitem.checked || false
+  }
+
+  tasks[index].subitems = [...(tasks[index].subitems || []), newSubitem]
+  saveTasks(tasks)
+  return newSubitem
+}
+
+/**
+ * Actualiza un subitem de una tarea
+ * @param {string} taskId - ID de la tarea
+ * @param {string} subitemId - ID del subitem
+ * @param {Object} updates - Campos a actualizar { checked, description }
+ * @returns {Object|null} Subitem actualizado o null si no se encontró
+ */
+export const updateSubitem = (taskId, subitemId, updates) => {
+  const tasks = getTasks()
+  const taskIndex = tasks.findIndex(t => t.id === taskId)
+  if (taskIndex === -1) return null
+
+  const subitemIndex = tasks[taskIndex].subitems?.findIndex(s => s.id === subitemId)
+  if (subitemIndex === -1) return null
+
+  tasks[taskIndex].subitems[subitemIndex] = {
+    ...tasks[taskIndex].subitems[subitemIndex],
+    ...updates
+  }
+  saveTasks(tasks)
+  return tasks[taskIndex].subitems[subitemIndex]
+}
+
+/**
+ * Elimina un subitem de una tarea
+ * @param {string} taskId - ID de la tarea
+ * @param {string} subitemId - ID del subitem
+ * @returns {boolean} true si se eliminó, false si no se encontró
+ */
+export const deleteSubitem = (taskId, subitemId) => {
+  const tasks = getTasks()
+  const taskIndex = tasks.findIndex(t => t.id === taskId)
+  if (taskIndex === -1) return false
+
+  const originalLength = tasks[taskIndex].subitems?.length || 0
+  tasks[taskIndex].subitems = (tasks[taskIndex].subitems || []).filter(s => s.id !== subitemId)
+
+  if (tasks[taskIndex].subitems.length < originalLength) {
+    saveTasks(tasks)
+    return true
+  }
+  return false
+}
+
+/**
+ * Migra tareas antiguas al nuevo formato con subitems
+ * Se ejecuta automáticamente al iniciar la app
+ * @returns {Array} Tareas migradas
+ */
+export const migrateTaskFormat = () => {
+  const tasks = getTasks()
+  let needsMigration = false
+
+  const migratedTasks = tasks.map(task => {
+    if (!task.subitems) {
+      needsMigration = true
+      return {
+        ...task,
+        subitems: [] // Agregar array vacío
+      }
+    }
+    return task
+  })
+
+  if (needsMigration) {
+    saveTasks(migratedTasks)
+    console.log('[localStorageService] Migradas', tasks.length, 'tareas al nuevo formato con subitems')
+  }
+
+  return migratedTasks
+}
+
 export default {
   saveTasks,
   getTasks,
@@ -129,5 +238,9 @@ export default {
   clearTasks,
   markAsSynced,
   getSyncedTaskIds,
-  clearSyncedMarks
+  clearSyncedMarks,
+  addSubitem,
+  updateSubitem,
+  deleteSubitem,
+  migrateTaskFormat
 }

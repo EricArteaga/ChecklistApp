@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
     ME: '/api/auth/me',
+    HEALTH: '/api/auth/health',
     REFRESH: '/api/auth/refresh'
   },
 
@@ -21,7 +22,11 @@ export const API_ENDPOINTS = {
     BY_ID: (id) => `/api/tasks/${id}`,
     BY_USER: (userId) => `/api/tasks/usuario/${userId}`,
     PENDING: (userId) => `/api/tasks/usuario/${userId}/pendientes`,
-    COMPLETED: (userId) => `/api/tasks/usuario/${userId}/completadas`
+    COMPLETED: (userId) => `/api/tasks/usuario/${userId}/completadas`,
+    SUBITEMS: {
+      LIST: (taskId) => `/api/tasks/${taskId}/subitems`,
+      BY_ID: (taskId, subitemId) => `/api/tasks/${taskId}/subitems/${subitemId}`
+    }
   },
 
   // Users

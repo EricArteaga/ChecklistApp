@@ -38,9 +38,19 @@ export default function Sidebar() {
         setUser(userData)
       } catch (error) {
         console.error('Error loading user:', error)
-        // Si hay error con el token, limpiarlo
-        authService.logout()
-        setUser(null)
+        // NO hacer logout inmediato - usar cache si existe
+        const cachedUser = localStorage.getItem('userCache')
+        if (cachedUser) {
+          try {
+            setUser(JSON.parse(cachedUser))
+          } catch (parseError) {
+            console.error('Error parsing cached user:', parseError)
+            setUser(null)
+          }
+        } else {
+          setUser(null)
+        }
+        // El manejo de 401 ahora está centralizado en client.js interceptor
       }
     } else {
       setUser(null)

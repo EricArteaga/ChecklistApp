@@ -121,16 +121,19 @@ export const deleteTask = async (id) => {
 /**
  * Sincroniza tareas locales con el backend cuando el usuario se autentica
  * @param {number} userId - ID del usuario autenticado
- * @returns {Promise} Tareas sincronizadas
+ * @returns {Promise<Object>} Objeto con { syncedTasks, failedTasks, syncedSubitems, failedSubitems }
  */
 export const syncLocalTasks = async (userId) => {
   const localTasks = localStorageService.getTasks()
 
   if (localTasks.length === 0) {
-    return []
+    return { syncedTasks: [], failedTasks: [], syncedSubitems: 0, failedSubitems: 0 }
   }
 
   const syncedTasks = []
+  const failedTasks = []
+  let syncedSubitems = 0
+  let failedSubitems = 0
 
   for (const task of localTasks) {
     try {
@@ -145,18 +148,99 @@ export const syncLocalTasks = async (userId) => {
         fechaRealizacion: task.fechaRealizacion || null
       }
 
-      const createdTask = await apiClient.post(API_ENDPOINTS.TASKS.LIST, taskData)
-      syncedTasks.push(createdTask.data)
+      const createdTaskResponse = await apiClient.post(API_ENDPOINTS.TASKS.LIST, taskData)
+      const createdTask = createdTaskResponse.data
+      syncedTasks.push(createdTask)
+
+      // Sincronizar subitems si existen
+      if (task.subitems && Array.isArray(task.subitems) && task.subitems.length > 0) {
+        for (const subitem of task.subitems) {
+          try {
+            const subitemData = {
+              description: subitem.description || subitem.text || '',
+              checked: subitem.checked || subitem.completed || false
+            }
+
+            await apiClient.post(
+              API_ENDPOINTS.TASKS.SUBITEMS.LIST(createdTask.id),
+              subitemData
+            )
+            syncedSubitems++
+          } catch (subitemError) {
+            console.error(`Error syncing subitem for task ${task.id}:`, subitemError)
+            failedSubitems++
+          }
+        }
+      }
     } catch (error) {
       console.error(`Error syncing task ${task.id}:`, error)
+      failedTasks.push(task)
     }
   }
 
-  // Limpiar tareas locales después de sincronizar
-  localStorageService.clearTasks()
-  localStorageService.clearSyncedMarks()
+  // Solo limpiar localStorage si TODAS las tareas se sincronizaron exitosamente
+  if (failedTasks.length === 0) {
+    localStorageService.clearTasks()
+    localStorageService.clearSyncedMarks()
+    console.log(`Todas las tareas (${syncedTasks.length}) y subitems (${syncedSubitems}) se sincronizaron correctamente`)
+  } else {
+    console.warn(`${failedTasks.length} tareas fallaron al sincronizar. No se limpió localStorage.`)
+  }
 
-  return syncedTasks
+  return { syncedTasks, failedTasks, syncedSubitems, failedSubitems }
+}
+
+/**
+ * Agrega un subitem a una tarea
+ * @param {string} taskId - ID de la tarea
+ * @param {Object} subitem - { description, checked }
+ * @returns {Promise<Object>} Subitem agregado
+ */
+export const addSubitem = async (taskId, subitem) => {
+  // En modo anónimo: usar localStorage
+  if (!authService.isAuthenticated()) {
+    return localStorageService.addSubitem(taskId, subitem)
+  }
+  // En modo autenticado: usar API
+  const response = await apiClient.post(
+    API_ENDPOINTS.TASKS.SUBITEMS.LIST(taskId),
+    subitem
+  )
+  return response.data
+}
+
+/**
+ * Actualiza un subitem
+ * @param {string} taskId - ID de la tarea
+ * @param {string} subitemId - ID del subitem
+ * @param {Object} updates - { checked, description }
+ * @returns {Promise<Object>} Subitem actualizado
+ */
+export const updateSubitem = async (taskId, subitemId, updates) => {
+  if (!authService.isAuthenticated()) {
+    return localStorageService.updateSubitem(taskId, subitemId, updates)
+  }
+  // En modo autenticado: usar API
+  const response = await apiClient.patch(
+    API_ENDPOINTS.TASKS.SUBITEMS.BY_ID(taskId, subitemId),
+    updates
+  )
+  return response.data
+}
+
+/**
+ * Elimina un subitem
+ * @param {string} taskId - ID de la tarea
+ * @param {string} subitemId - ID del subitem
+ * @returns {Promise<boolean>} true si se eliminó
+ */
+export const deleteSubitem = async (taskId, subitemId) => {
+  if (!authService.isAuthenticated()) {
+    return localStorageService.deleteSubitem(taskId, subitemId)
+  }
+  // En modo autenticado: usar API
+  await apiClient.delete(API_ENDPOINTS.TASKS.SUBITEMS.BY_ID(taskId, subitemId))
+  return true
 }
 
 export default {
@@ -168,5 +252,8 @@ export default {
   createTask,
   updateTask,
   deleteTask,
-  syncLocalTasks
+  syncLocalTasks,
+  addSubitem,
+  updateSubitem,
+  deleteSubitem
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, EmptyState, Badge } from '@checklist/ui'
-import taskService from '../../services/taskService'
+import * as taskService from '../../services/taskService'
 import typeService from '../../services/typeService'
 import authService from '../../services/authService'
+import localStorageService from '../../services/localStorageService'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -103,54 +104,27 @@ export default function Checklist() {
           setChecklists(checklistsArray)
         } else {
           // Usuario no autenticado: cargar tareas de localStorage
-          const localTasks = await taskService.getTasksByUser(null)
+          // Ejecutar migración si es necesario
+          const localTasks = localStorageService.migrateTaskFormat()
           setTasks(localTasks)
 
-          // Convertir tareas locales al formato de checklists
-          const groupedByType = {}
-          const tasksWithoutType = []
+          // Crear checklists individuales (uno por tarea)
+          const checklistsArray = []
 
           localTasks.forEach(task => {
-            const taskData = {
+            // Cada tarea se convierte en un checklist con sus subitems
+            const checklist = {
               id: task.id,
-              description: task.nombre || task.title || task.description,
-              checked: task.completada || task.checked || false,
-              tipo: task.tipo || null
+              title: task.nombre || task.title || 'Sin título',
+              description: task.descripcion || `${task.subitems?.length || 0} ítems`,
+              color: task.tipo?.color || '#6B7280',
+              items: task.subitems || [], // ✅ Cargar subitems como items del checklist
+              tipo: task.tipo || null,
+              createdAt: task.createdAt || new Date().toISOString()
             }
 
-            if (taskData.tipo) {
-              if (!groupedByType[taskData.tipo.id]) {
-                groupedByType[taskData.tipo.id] = {
-                  id: taskData.tipo.id,
-                  title: taskData.tipo.nombre,
-                  description: taskData.tipo.nombre,
-                  color: taskData.tipo.color,
-                  items: []
-                }
-              }
-              groupedByType[taskData.tipo.id].items.push(taskData)
-            } else {
-              tasksWithoutType.push(taskData)
-            }
+            checklistsArray.push(checklist)
           })
-
-          // Crear checklists agrupados
-          const checklistsArray = Object.values(groupedByType).map(group => ({
-            ...group,
-            createdAt: new Date().toISOString(),
-          }))
-
-          // Agregar tareas sin tipo si existen
-          if (tasksWithoutType.length > 0) {
-            checklistsArray.push({
-              id: 'without-type',
-              title: 'Sin Categorizar',
-              description: 'Tareas sin tipo asignado',
-              color: '#6B7280',
-              items: tasksWithoutType,
-              createdAt: new Date().toISOString(),
-            })
-          }
 
           setChecklists(checklistsArray)
         }
@@ -230,70 +204,193 @@ export default function Checklist() {
   // Función para alternar estado completado de un ítem (tarea)
   const handleToggleItem = async (checklistId, itemId) => {
     try {
-      // Buscar la tarea actual
-      const task = tasks.find(t => t.id === itemId)
-      if (!task) return
+      // Buscar el ítem en los checklists (es un subitem)
+      const checklist = checklists.find(c => c.id === checklistId)
+      const item = checklist?.items.find(i => i.id === itemId)
 
-      // Actualizar en el backend
-      await taskService.updateTask(itemId, {
-        completada: !task.completada
-      })
+      if (!item) return
 
-      // Actualizar estado local (optimista)
-      setTasks(tasks.map(t =>
-        t.id === itemId ? { ...t, completada: !t.completada } : t
-      ))
+      const newCheckedState = !item.checked
 
-      setChecklists(checklists.map(checklist => {
+      // Optimistic UI update
+      // ✅ FIX: Usar forma funcional
+      setChecklists(prevChecklists => prevChecklists.map(checklist => {
         if (checklist.id === checklistId) {
-          const updatedItems = checklist.items.map(item =>
-            item.id === itemId ? { ...item, checked: !item.checked } : item
-          )
-          return { ...checklist, items: updatedItems }
+          return {
+            ...checklist,
+            items: checklist.items.map(i =>
+              i.id === itemId ? { ...i, checked: newCheckedState } : i
+            ),
+          }
         }
         return checklist
       }))
+
+      // Determinar si es una tarea (checklist agrupado) o un subitem
+      const task = tasks.find(t => t.id === itemId)
+      if (task) {
+        // Es una tarea (checklist agrupado por tipo)
+        await taskService.updateTask(itemId, {
+          completada: newCheckedState
+        })
+
+        // ✅ FIX: Actualizar estado local de tasks con forma funcional
+        setTasks(prevTasks => prevTasks.map(t =>
+          t.id === itemId ? { ...t, completada: newCheckedState } : t
+        ))
+      } else {
+        // Es un subitem de una tarea
+        await taskService.updateSubitem(checklistId, itemId, { checked: newCheckedState })
+
+        // ✅ FIX: Actualizar tasks state con forma funcional
+        setTasks(prevTasks => prevTasks.map(t => {
+          if (t.id === checklistId) {
+            return {
+              ...t,
+              subitems: (t.subitems || []).map(s =>
+                s.id === itemId ? { ...s, checked: newCheckedState } : s
+              )
+            }
+          }
+          return t
+        }))
+      }
     } catch (err) {
+      console.error('Error toggling item:', err)
       setError(err.message || 'Error al actualizar la tarea.')
     }
   }
 
   // Función para agregar nuevo ítem a un checklist
   const handleAddItem = async (checklistId, description) => {
-    if (!description.trim()) return // Evita agregar ítems vacíos
+    if (!description.trim()) return
 
-    setChecklists(checklists.map(checklist => {
+    const newItem = {
+      description: description.trim(),
+      checked: false,
+    }
+
+    // Optimistic UI update
+    const tempId = `temp-${Date.now()}`
+
+    // ✅ FIX: Usar forma funcional para evitar closure obsoleto
+    setChecklists(prevChecklists => prevChecklists.map(checklist => {
       if (checklist.id === checklistId) {
-        const newItem = {
-          id: Date.now(), // ID único basado en timestamp
-          description: description.trim(), // Elimina espacios extra
-          checked: false, // Nuevo ítem comienza como no completado
-        }
+        const newItems = [...checklist.items, { ...newItem, id: tempId }]
         return {
           ...checklist,
-          items: [...checklist.items, newItem], // Añade nuevo ítem al array existente
+          items: newItems,
+          description: `${newItems.length} ítems`, // ✅ FIX: Actualizar descripción
         }
       }
       return checklist
     }))
+
+    try {
+      // Persistir a localStorage
+      const addedSubitem = await taskService.addSubitem(checklistId, newItem)
+
+      // ✅ FIX: Usar forma funcional para acceder al estado actualizado
+      setChecklists(prevChecklists => prevChecklists.map(checklist => {
+        if (checklist.id === checklistId) {
+          return {
+            ...checklist,
+            items: checklist.items.map(item =>
+              item.id === tempId ? { ...item, id: addedSubitem.id } : item
+            ),
+            description: `${checklist.items.length} ítems`, // ✅ FIX: Actualizar descripción
+          }
+        }
+        return checklist
+      }))
+
+      // ✅ FIX: También aquí usar forma funcional
+      setTasks(prevTasks => prevTasks.map(t => {
+        if (t.id === checklistId) {
+          return {
+            ...t,
+            subitems: [...(t.subitems || []), addedSubitem]
+          }
+        }
+        return t
+      }))
+    } catch (err) {
+      console.error('Error adding subitem:', err)
+      setError('Error al agregar ítem')
+      // ✅ FIX: Rollback también con forma funcional
+      setChecklists(prevChecklists => prevChecklists.map(checklist => {
+        if (checklist.id === checklistId) {
+          const filteredItems = checklist.items.filter(item => item.id !== tempId)
+          return {
+            ...checklist,
+            items: filteredItems,
+            description: `${filteredItems.length} ítems`, // ✅ FIX: Actualizar descripción en rollback
+          }
+        }
+        return checklist
+      }))
+    }
   }
 
   // Función para eliminar un ítem específico de un checklist
   const handleDeleteItem = async (checklistId, itemId) => {
-    setChecklists(checklists.map(checklist => {
+    // ✅ FIX: Guardar referencia para rollback ANTES de actualizar estado
+    const checklistToDeleteFrom = checklists.find(c => c.id === checklistId)
+    const itemToDelete = checklistToDeleteFrom?.items.find(i => i.id === itemId)
+
+    // Optimistic UI update
+    // ✅ FIX: Usar forma funcional
+    setChecklists(prevChecklists => prevChecklists.map(checklist => {
       if (checklist.id === checklistId) {
+        const filteredItems = checklist.items.filter(item => item.id !== itemId)
         return {
           ...checklist,
-          items: checklist.items.filter(item => item.id !== itemId), // Filtra el ítem a eliminar
+          items: filteredItems,
+          description: `${filteredItems.length} ítems`, // ✅ FIX: Actualizar descripción
         }
       }
       return checklist
     }))
+
+    try {
+      // Persistir eliminación a localStorage
+      await taskService.deleteSubitem(checklistId, itemId)
+
+      // ✅ FIX: Usar forma funcional
+      setTasks(prevTasks => prevTasks.map(t => {
+        if (t.id === checklistId) {
+          return {
+            ...t,
+            subitems: (t.subitems || []).filter(s => s.id !== itemId)
+          }
+        }
+        return t
+      }))
+    } catch (err) {
+      console.error('Error deleting subitem:', err)
+      setError('Error al eliminar ítem')
+      // Rollback en caso de error
+      if (itemToDelete) {
+        // ✅ FIX: Usar forma funcional
+        setChecklists(prevChecklists => prevChecklists.map(checklist => {
+          if (checklist.id === checklistId) {
+            const restoredItems = [...checklist.items, itemToDelete]
+            return {
+              ...checklist,
+              items: restoredItems,
+              description: `${restoredItems.length} ítems`, // ✅ FIX: Actualizar descripción en rollback
+            }
+          }
+          return checklist
+        }))
+      }
+    }
   }
 
   // Función para editar descripción de un ítem existente
   const handleEditItem = async (checklistId, itemId, newDescription) => {
-    setChecklists(checklists.map(checklist => {
+    // ✅ FIX: Usar forma funcional
+    setChecklists(prevChecklists => prevChecklists.map(checklist => {
       if (checklist.id === checklistId) {
         return {
           ...checklist,

@@ -107,7 +107,7 @@ export default function Register() {
       if (localTasks.length > 0) {
         setSyncing(true)
         try {
-          await taskService.syncLocalTasks(response.id || response.usuario?.id)
+          await taskService.syncLocalTasks(response.user?.id)
           console.log('Tareas sincronizadas exitosamente')
         } catch (syncError) {
           console.error('Error sincronizando tareas:', syncError)

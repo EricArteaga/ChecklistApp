@@ -52,6 +52,9 @@ dependencies {
 
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // H2 Database para integration tests
+    testImplementation 'com.h2database:h2:2.2.224'
 }
 
 tasks.named('test') {

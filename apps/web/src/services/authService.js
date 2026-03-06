@@ -58,12 +58,24 @@ export const getMe = async () => {
 }
 
 /**
+ * Maneja el error 401 Unauthorized de forma centralizada
+ * @param {string} reason - Razón del logout (ej: 'Sesión expirada', 'Logout manual')
+ */
+export const handleUnauthorized = (reason = 'Sesión expirada') => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('userCache')
+  // Solo redirigir si no estamos ya en login o register
+  if (!window.location.pathname.match(/\/(login|register)/)) {
+    window.location.href = '/login'
+  }
+  console.log(`Logout: ${reason}`)
+}
+
+/**
  * Cierra sesión (elimina el token)
  */
 export const logout = () => {
-  localStorage.removeItem('token')
-  // Opcional: Redirigir al login
-  // window.location.href = '/login'
+  handleUnauthorized('Logout manual')
 }
 
 /**

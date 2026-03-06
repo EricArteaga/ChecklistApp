@@ -27,6 +27,7 @@ export default function Login() {
   })
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 })
   const [error, setError] = useState('')
 
   // Manejar cambios en los inputs
@@ -65,13 +66,31 @@ export default function Login() {
       if (localTasks.length > 0) {
         setSyncing(true)
         try {
-          await taskService.syncLocalTasks(response.id || response.usuario?.id)
-          console.log('Tareas sincronizadas exitosamente')
+          // Calcular total de elementos a sincronizar (tareas + subitems)
+          const totalSubitems = localTasks.reduce((sum, task) => {
+            return sum + (task.subitems?.length || 0)
+          }, 0)
+          const totalElements = localTasks.length + totalSubitems
+
+          setSyncProgress({ current: 0, total: totalElements })
+
+          const syncResult = await taskService.syncLocalTasks(response.user?.id)
+
+          // Mostrar advertencia si algunas tareas fallaron
+          if (syncResult.failedTasks.length > 0) {
+            setError(`Algunas tareas (${syncResult.failedTasks.length}) no pudieron sincronizarse. Reintenta desde tu perfil.`)
+          } else if (syncResult.failedSubitems > 0) {
+            setError(`${syncResult.failedSubitems} subitems no pudieron sincronizarse. Las tareas se guardaron correctamente.`)
+          } else {
+            console.log(`Sincronización exitosa: ${syncResult.syncedTasks.length} tareas, ${syncResult.syncedSubitems} subitems`)
+          }
         } catch (syncError) {
           console.error('Error sincronizando tareas:', syncError)
-          // Continuar aunque falle la sincronización
+          // Mostrar advertencia al usuario pero continuar con login
+          setError('Error al sincronizar tareas. Reintenta desde tu perfil.')
         } finally {
           setSyncing(false)
+          setSyncProgress({ current: 0, total: 0 })
         }
       }
 
@@ -176,7 +195,9 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Sincronizando tus tareas...
+                  {syncProgress.total > 0
+                    ? `Sincronizando ${syncProgress.current}/${syncProgress.total}...`
+                    : 'Sincronizando tus tareas...'}
                 </>
               ) : loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
