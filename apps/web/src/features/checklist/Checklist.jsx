@@ -614,7 +614,9 @@ export default function Checklist() {
               <h3 className="font-semibold text-destructive mb-1">
                 {isConnectionError ? 'Error de Conexión' : 'Error'}
               </h3>
-              <div className="text-sm text-muted-foreground whitespace-pre-line">{error}</div>
+              <div className="text-sm text-muted-foreground whitespace-pre-line">
+                {typeof error === 'string' ? error : 'Error al cargar las tareas'}
+              </div>
               <div className="flex gap-2 mt-3">
                 <Button
                   variant="outline"
@@ -655,7 +657,7 @@ export default function Checklist() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gradient">
-            Mis Checklists
+            Mis Tareas
           </h2>
           <p className="text-muted-foreground mt-1">
             Organiza tus tareas y mantén el enfoque
@@ -682,7 +684,7 @@ export default function Checklist() {
           </Button>
           {/* Badge con contador - Azul Claro para información */}
           <Badge variant="secondary" className="text-sm bg-info-light text-info border-info/30">
-            {checklists.length} {checklists.length === 1 ? 'checklist' : 'checklists'}
+            {checklists.length} {checklists.length === 1 ? 'tarea' : 'tareas'}
           </Badge>
         </div>
       </div>
@@ -727,17 +729,17 @@ export default function Checklist() {
             className="space-y-4"
           >
             <label htmlFor="nueva-tarea-input" className="sr-only">
-              Nombre del nuevo checklist
+              Nombre de la nueva tarea
             </label>
             <Input
               id="nueva-tarea-input"
               type="text"
-              placeholder="Nombre del nuevo checklist..."
+              placeholder="Nombre de la nueva tarea..."
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleCreateChecklist()}
               className="w-full input-enhanced text-lg"
-              aria-label="Nombre del nuevo checklist"
+              aria-label="Nombre de la nueva tarea"
               ref={inputRef}
             />
             {types.length > 0 && (
@@ -764,9 +766,9 @@ export default function Checklist() {
                   disabled={!newItemTitle.trim() || isCreating}
                   loading={isCreating}
                   className="btn-primary-gradient shadow-soft"
-                  aria-label="Crear nuevo checklist"
+                  aria-label="Crear nueva tarea"
                 >
-                  {isCreating ? 'Creando...' : 'Crear Checklist'}
+                  {isCreating ? 'Creando...' : 'Crear Tarea'}
                 </Button>
               </div>
             )}
@@ -776,9 +778,9 @@ export default function Checklist() {
                 disabled={!newItemTitle.trim() || isCreating}
                 loading={isCreating}
                 className="w-full btn-primary-gradient shadow-soft"
-                aria-label="Crear nuevo checklist"
+                aria-label="Crear nueva tarea"
               >
-                {isCreating ? 'Creando...' : 'Crear Checklist'}
+                {isCreating ? 'Creando...' : 'Crear Tarea'}
               </Button>
             )}
           </form>

@@ -50,7 +50,7 @@ export const NoTasksEmptyState = ({ onCreateTask }) => {
           {/* Description with benefits */}
           <div className="space-y-3 text-left bg-muted/50 rounded-xl p-6">
             <p className="text-sm font-medium text-foreground">
-              Los checklists te ayudarán a:
+              Las tareas te ayudarán a:
             </p>
             <ul className="text-sm space-y-2 text-muted-foreground">
               <li className="flex items-start gap-2">
@@ -89,12 +89,12 @@ export const NoTasksEmptyState = ({ onCreateTask }) => {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Crear mi primer checklist
+            Crear mi primera tarea
           </Button>
 
           {/* Helpful tip */}
           <p className="text-xs text-muted-foreground">
-            Tip: Puedes crear checklists para cualquier cosa que quieras organizar
+            Tip: Puedes crear tareas para cualquier cosa que quieras organizar
           </p>
         </div>
       </CardContent>
@@ -190,7 +190,7 @@ export const NoItemsEmptyState = ({ onAddItem }) => {
 
       {/* Helpful hint */}
       <p className="text-xs text-muted-foreground">
-        Tip: Los ítems son las tareas pequeñas que completan tu checklist
+        Tip: Los ítems son las tareas pequeñas que completan tu tarea
       </p>
     </div>
   )

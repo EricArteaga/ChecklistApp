@@ -1,56 +1,62 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import authService from '../services/authService'
+import typeService from '../services/typeService'
+import { useTheme } from '../hooks/useTheme'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
- * SIDEBAR - Navigation & User Profile
+ * SIDEBAR - Todoist-style navigation drawer
  * ═══════════════════════════════════════════════════════════════════
  *
- * Design principles:
- * • Premium header with gradient (Azul Oscuro → Azul Claro)
- * • Calm, focused user card (Azul Claro accents)
- * • Satisfying micro-interactions
- * • Clear visual hierarchy
+ * Features:
+ * • User dropdown with real name (authenticated) or login button (anonymous)
+ * • Theme toggle in user menu (no auto option)
+ * • Navigation: Tareas, Buscador, Inbox, Hoy, Próximo, Heatmap
+ * • Types list with "+" button
  */
-export default function Sidebar() {
+export default function Sidebar({ currentView, onViewChange }) {
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [types, setTypes] = useState([])
   const [loading, setLoading] = useState(true)
+  const { theme, toggleTheme } = useTheme()
 
-  // Cargar usuario cuando el componente se monta
+  // Load user and types
   useEffect(() => {
-    loadUser()
+    loadUserAndTypes()
   }, [])
 
-  // Recargar usuario cuando el sidebar se abre
+  // Reload when sidebar opens
   useEffect(() => {
     if (isOpen) {
-      loadUser()
+      loadUserAndTypes()
     }
   }, [isOpen])
 
-  const loadUser = async () => {
+  const loadUserAndTypes = async () => {
     if (authService.isAuthenticated()) {
       try {
         const userData = await authService.getMe()
         setUser(userData)
+
+        // Load types
+        const typesData = await typeService.getTypesByUser(userData.id)
+        setTypes(typesData)
       } catch (error) {
-        console.error('Error loading user:', error)
-        // NO hacer logout inmediato - usar cache si existe
+        console.error('Error loading data:', error)
         const cachedUser = localStorage.getItem('userCache')
         if (cachedUser) {
           try {
             setUser(JSON.parse(cachedUser))
           } catch (parseError) {
-            console.error('Error parsing cached user:', parseError)
             setUser(null)
           }
         } else {
           setUser(null)
         }
-        // El manejo de 401 ahora está centralizado en client.js interceptor
       }
     } else {
       setUser(null)
@@ -62,21 +68,34 @@ export default function Sidebar() {
     navigate('/login')
   }
 
-  const handleRegister = () => {
-    navigate('/register')
-  }
-
   const handleLogout = () => {
     authService.logout()
     setUser(null)
-    setLoading(false)
+    setUserMenuOpen(false)
     setIsOpen(false)
     navigate('/login')
   }
 
+  const handleViewChange = (view) => {
+    onViewChange(view)
+    setIsOpen(false)
+  }
+
+  const handleTypeClick = (typeId) => {
+    onViewChange('type-detail')
+    // Store selected type ID in localStorage for TypeDetailView to read
+    localStorage.setItem('selectedTypeId', typeId)
+    setIsOpen(false)
+  }
+
+  const handleCreateType = () => {
+    // Navigate to types management view
+    handleViewChange('types')
+  }
+
   return (
     <>
-      {/* Botón toggle para abrir sidebar - Azul Oscuro para enfoque */}
+      {/* Toggle button */}
       <button
         onClick={() => setIsOpen(true)}
         className="fixed left-4 top-4 z-50 p-2.5 bg-gradient-primary text-white rounded-xl shadow-soft hover:shadow-strong hover-lift focus-ring-offset transition-smooth"
@@ -87,7 +106,7 @@ export default function Sidebar() {
         </svg>
       </button>
 
-      {/* Overlay oscuro cuando sidebar está abierto */}
+      {/* Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity animate-fade-in"
@@ -104,165 +123,243 @@ export default function Sidebar() {
         `}
       >
         <div className="flex flex-col h-full">
-          {/* ─────────────────────────────────────────────────────────
-              Header del sidebar con gradiente premium
-              ───────────────────────────────────────────────────────── */}
-          <div className="bg-gradient-primary p-6 shadow-soft">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Icono con fondo blanco para contraste */}
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-soft">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">ChecklistApp</h2>
-                  <p className="text-xs text-white/80">Tu espacio de enfoque</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-smooth hover-lift focus-ring text-white/90 hover:text-white"
-                aria-label="Cerrar menú"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* ─────────────────────────────────────────────────────────
-              Contenido del sidebar
-              ───────────────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          {/* ═══════════════════════════════════════════════════════════
+              HEADER - Unified dropdown (theme toggle always accessible)
+              ═══════════════════════════════════════════════════════════ */}
+          <div className="p-4 border-b">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : user ? (
-              // ─────────────────────────────────────────────────────────
-              // USUARIO AUTENTICADO - Tarjeta premium
-              // ─────────────────────────────────────────────────────────
-              <div className="space-y-6">
-                {/* Información del usuario - Card premium con borde gradiente */}
-                <div className="card-premium p-5 rounded-xl bg-gradient-subtle">
-                  <div className="flex items-center gap-4 mb-4">
-                    {/* Avatar con gradiente Azul Verdoso (logro) */}
-                    <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-success text-white text-xl font-bold shadow-soft">
-                      {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-muted-foreground truncate">{user.correo || user.email || ''}</p>
-                      <h3 className="font-semibold text-foreground text-lg truncate">{user.nombre || 'Usuario'}</h3>
-                    </div>
-                  </div>
-
-                  {/* Badge de estado - Azul Verdoso para éxito */}
-                  <div className="flex items-center gap-2 badge-success justify-center py-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Autenticado</span>
-                  </div>
-                </div>
-
-                {/* Mensaje informativo - Azul Claro para calma */}
-                <div className="p-4 bg-info-light/50 border border-info/30 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Tus tareas están guardadas de forma segura
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Accede desde cualquier dispositivo
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botón de logout - Minimalista pero claro */}
-                <button
-                  onClick={handleLogout}
-                  className="w-full px-4 py-3 text-destructive hover:bg-destructive/10 rounded-xl transition-smooth hover-lift focus-ring flex items-center justify-center gap-2 font-medium border border-destructive/20"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Cerrar Sesión
-                </button>
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               </div>
             ) : (
-              // ─────────────────────────────────────────────────────────
-              // USUARIO NO AUTENTICADO - Enfoque en conversión
-              // ─────────────────────────────────────────────────────────
-              <div className="space-y-6">
-                {/* Mensaje de advertencia - Ambar para atención */}
-                <div className="p-4 bg-warning-light/50 border border-warning/30 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              // Unified dropdown for both authenticated and anonymous users
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-muted rounded-xl transition-smooth"
+                >
+                  {user ? (
+                    // Authenticated: Show avatar and name
+                    <>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-primary text-white text-lg font-bold shadow-soft">
+                        {user.nombre?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-foreground">{user.nombre || 'Usuario'}</p>
+                      </div>
+                    </>
+                  ) : (
+                    // Anonymous: Show menu icon
+                    <>
+                      <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-warning mb-1">
-                        Sesión no iniciada
-                      </h4>
-                      <p className="text-sm text-foreground">
-                        Tus tareas no se guardarán permanentemente. Inicia sesión para respaldo en la nube.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                      <span className="font-medium text-foreground">Menú</span>
+                    </>
+                  )}
 
-                {/* Icono de usuario anónimo - Sutil, no intrusivo */}
-                <div className="flex justify-center">
-                  <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-muted/30 shadow-soft">
-                    <svg className="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Botones de autenticación - Jerarquía clara */}
-                <div className="space-y-3">
-                  {/* Primario: Iniciar Sesión (Azul Oscuro) */}
-                  <button
-                    onClick={handleLogin}
-                    className="w-full px-4 py-3 bg-gradient-primary text-white rounded-xl hover:shadow-strong transition-smooth hover-lift focus-ring flex items-center justify-center gap-2 font-medium shadow-soft"
+                  <svg
+                    className={`w-4 h-4 text-muted-foreground transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                    Iniciar Sesión
-                  </button>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-                  {/* Secundario: Crear Cuenta (Azul Claro) */}
-                  <button
-                    onClick={handleRegister}
-                    className="w-full px-4 py-3 bg-secondary text-white rounded-xl hover:bg-secondary/90 transition-smooth hover-lift focus-ring flex items-center justify-center gap-2 font-medium shadow-soft"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Crear Cuenta
-                  </button>
-                </div>
+                {/* Unified dropdown menu */}
+                {userMenuOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+
+                    {/* Menu */}
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-xl shadow-lg z-20 overflow-hidden">
+                      {/* Theme toggle - ALWAYS VISIBLE */}
+                      <button
+                        onClick={() => {
+                          toggleTheme()
+                          setUserMenuOpen(false)
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-smooth text-left"
+                      >
+                        <span className="text-lg">
+                          {theme === 'light' ? '🌙' : '☀️'}
+                        </span>
+                        <span>
+                          {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
+                        </span>
+                      </button>
+
+                      <div className="border-t" />
+
+                      {user ? (
+                        // Authenticated user options
+                        <>
+                          {/* User info */}
+                          <div className="p-4 bg-muted/30 border-b">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-primary text-white text-lg font-bold">
+                                {user.nombre?.charAt(0).toUpperCase() || 'U'}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-foreground">{user.nombre || 'Usuario'}</p>
+                                <p className="text-xs text-muted-foreground">{user.correo || user.email || ''}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Settings button */}
+                          <button className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-smooth text-left">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Configuración</span>
+                          </button>
+
+                          {/* Logout */}
+                          <button
+                            onClick={handleLogout}
+                            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-destructive/10 transition-smooth text-left text-destructive"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>Cerrar Sesión</span>
+                          </button>
+                        </>
+                      ) : (
+                        // Anonymous user: Login button
+                        <button
+                          onClick={handleLogin}
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-smooth text-left"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                          </svg>
+                          <span className="font-medium">Iniciar Sesión</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
 
-          {/* ─────────────────────────────────────────────────────────
-              Footer del sidebar - Minimalista
-              ───────────────────────────────────────────────────────── */}
-          <div className="p-6 border-t bg-muted/20">
+          {/* ═══════════════════════════════════════════════════════════
+              NAVIGATION - Main menu
+              ═══════════════════════════════════════════════════════════ */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {/* Tareas (renamed from Checklist) */}
+            <NavItem
+              icon="✅"
+              label="Tareas"
+              active={currentView === 'tareas'}
+              onClick={() => handleViewChange('tareas')}
+            />
+
+            {/* Buscador */}
+            <NavItem
+              icon="🔍"
+              label="Buscador"
+              active={currentView === 'search'}
+              onClick={() => handleViewChange('search')}
+            />
+
+            {/* Bandeja de Entrada */}
+            <NavItem
+              icon="📥"
+              label="Bandeja de Entrada"
+              active={currentView === 'inbox'}
+              onClick={() => handleViewChange('inbox')}
+            />
+
+            <div className="border-t my-3" />
+
+            {/* Hoy */}
+            <NavItem
+              icon="📅"
+              label="Hoy"
+              active={currentView === 'today'}
+              onClick={() => handleViewChange('today')}
+            />
+
+            {/* Próximo */}
+            <NavItem
+              icon="📆"
+              label="Próximo"
+              active={currentView === 'upcoming'}
+              onClick={() => handleViewChange('upcoming')}
+            />
+
+            {/* Heatmap */}
+            <NavItem
+              icon="📊"
+              label="Heatmap"
+              active={currentView === 'heatmap'}
+              onClick={() => handleViewChange('heatmap')}
+            />
+
+            {/* ═══════════════════════════════════════════════════════════
+                TYPES - User's project types
+                ═══════════════════════════════════════════════════════════ */}
+            {user && types.length > 0 && (
+              <>
+                <div className="border-t my-3" />
+
+                {/* Types header with add button */}
+                <div className="flex items-center justify-between mb-2 px-3">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Tipos
+                  </h3>
+                  <button
+                    onClick={handleCreateType}
+                    className="p-1 hover:bg-muted rounded transition-smooth"
+                    aria-label="Crear nuevo tipo"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Types list */}
+                <ul className="space-y-1">
+                  {types.map(type => (
+                    <li key={type.id}>
+                      <button
+                        onClick={() => handleTypeClick(type.id)}
+                        className={`
+                          w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth text-left
+                          ${currentView === 'type-detail' && localStorage.getItem('selectedTypeId') === String(type.id)
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'hover:bg-muted text-foreground'
+                          }
+                        `}
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full shadow-soft flex-shrink-0"
+                          style={{ backgroundColor: type.color }}
+                        />
+                        <span className="truncate">{type.nombre}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </nav>
+
+          {/* ═══════════════════════════════════════════════════════════
+              FOOTER - Minimalist
+              ═══════════════════════════════════════════════════════════ */}
+          <div className="p-4 border-t bg-muted/20">
             <p className="text-xs text-center text-muted-foreground">
               © 2026 ChecklistApp
             </p>
@@ -270,5 +367,26 @@ export default function Sidebar() {
         </div>
       </aside>
     </>
+  )
+}
+
+/**
+ * Nav Item Component
+ */
+function NavItem({ icon, label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth text-left
+        ${active
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'hover:bg-muted text-foreground'
+        }
+      `}
+    >
+      <span className="text-lg">{icon}</span>
+      <span>{label}</span>
+    </button>
   )
 }
