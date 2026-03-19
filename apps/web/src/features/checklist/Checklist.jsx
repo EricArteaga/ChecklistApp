@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, memo } from 'react'
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, EmptyState, Badge } from '@checklist/ui'
+import TaskCardSkeleton from '../../components/ui/TaskCardSkeleton'
+import { NoTasksEmptyState, NoTasksFilteredState, NoItemsEmptyState } from '../../components/common/EmptyStates'
+import TaskFilters from '../../components/common/TaskFilters'
+import { useToast } from '../../hooks/useToast'
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import * as taskService from '../../services/taskService'
 import typeService from '../../services/typeService'
 import authService from '../../services/authService'
 import localStorageService from '../../services/localStorageService'
+import { clearHeatmapCache } from '../../services/heatmapService'
+import { showExportPreview, exportToCSV, exportToPDF } from '../../utils/exportUtils'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -21,6 +28,7 @@ export default function Checklist() {
   // Estados principales del componente
   const [checklists, setChecklists] = useState([])
   const [tasks, setTasks] = useState([]) // Tareas reales del backend
+  const [filteredTasks, setFilteredTasks] = useState([]) // Tareas filtradas por TaskFilters
   const [types, setTypes] = useState([]) // Tipos disponibles
   const [currentUser, setCurrentUser] = useState(null) // Usuario autenticado
   const [loading, setLoading] = useState(true)
@@ -30,6 +38,33 @@ export default function Checklist() {
   const [filterType, setFilterType] = useState('') // Filtro por tipo
   const [isCreating, setIsCreating] = useState(false)
   const [expandedChecklist, setExpandedChecklist] = useState(null)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false) // Control visibilidad de filtros avanzados
+
+  // Ref para el input de nueva tarea
+  const inputRef = useRef(null)
+
+  // ═══════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS - Power user features
+  // ═══════════════════════════════════════════════════════════════════
+  useKeyboardShortcuts({
+    'n': () => {
+      // Ctrl+N: Focus en input de nueva tarea
+      inputRef.current?.focus()
+    },
+    'Escape': () => {
+      // Escape: Cerrar checklist expandido
+      setExpandedChecklist(null)
+    },
+  }, {
+    enabled: true,
+    preventDefault: true,
+    requireCtrl: false, // Escape doesn't require Ctrl
+  })
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TOAST NOTIFICATIONS - User feedback system
+  // ═══════════════════════════════════════════════════════════════════
+  const { success, error: toastError, warning, info } = useToast()
 
   // Efecto para cargar datos iniciales
   useEffect(() => {
@@ -138,6 +173,62 @@ export default function Checklist() {
     loadData()
   }, [])
 
+  // Regenerate checklists from filtered tasks when filters change
+  useEffect(() => {
+    if (filteredTasks.length > 0 || (filteredTasks.length === 0 && showAdvancedFilters)) {
+      // Group filtered tasks by type
+      const groupedByType = {}
+      const tasksWithoutType = []
+
+      filteredTasks.forEach(task => {
+        if (task.tipo) {
+          if (!groupedByType[task.tipo.id]) {
+            groupedByType[task.tipo.id] = {
+              id: task.tipo.id,
+              title: task.tipo.nombre,
+              description: task.tipo.nombre,
+              color: task.tipo.color,
+              items: []
+            }
+          }
+          groupedByType[task.tipo.id].items.push({
+            id: task.id,
+            description: task.nombre,
+            checked: task.completada,
+            tipo: task.tipo
+          })
+        } else {
+          tasksWithoutType.push({
+            id: task.id,
+            description: task.nombre,
+            checked: task.completada,
+            tipo: null
+          })
+        }
+      })
+
+      // Create checklists from filtered tasks
+      const checklistsArray = Object.values(groupedByType).map(group => ({
+        ...group,
+        createdAt: new Date().toISOString(),
+      }))
+
+      // Add tasks without type if any
+      if (tasksWithoutType.length > 0) {
+        checklistsArray.push({
+          id: 'without-type',
+          title: 'Sin Categorizar',
+          description: 'Tareas sin tipo asignado',
+          color: '#6B7280',
+          items: tasksWithoutType,
+          createdAt: new Date().toISOString(),
+        })
+      }
+
+      setChecklists(checklistsArray)
+    }
+  }, [filteredTasks, showAdvancedFilters])
+
   // Función para crear una nueva tarea (checklist)
   const handleCreateChecklist = async () => {
     if (!newItemTitle.trim()) return
@@ -173,10 +264,22 @@ export default function Checklist() {
       setSelectedType('')
       setExpandedChecklist(newChecklist.id)
       setError(null) // Limpiar error al exito
+
+      // ✅ TOAST: Success notification
+      success(
+        'Checklist creado',
+        `"${newItemTitle}" se ha creado exitosamente`
+      )
     } catch (err) {
       // Mostrar error detallado con formato mejorado
       const errorMessage = err.message || 'Error al crear la tarea. Por favor, intenta nuevamente.'
       setError(errorMessage)
+
+      // ✅ TOAST: Error notification
+      toastError(
+        'Error al crear',
+        errorMessage
+      )
 
       // Auto-limpiar el error después de 5 segundos
       setTimeout(() => setError(null), 5000)
@@ -192,12 +295,26 @@ export default function Checklist() {
       await taskService.deleteTask(checklistId)
 
       // Actualizar estado local
+      const deletedChecklist = checklists.find(c => c.id === checklistId)
       setChecklists(checklists.filter(c => c.id !== checklistId))
       if (expandedChecklist === checklistId) {
         setExpandedChecklist(null)
       }
+
+      // ✅ TOAST: Success notification
+      success(
+        'Checklist eliminado',
+        deletedChecklist ? `"${deletedChecklist.title}" ha sido eliminado` : 'Tarea eliminada'
+      )
     } catch (err) {
-      setError(err.message || 'Error al eliminar la tarea. Por favor, intenta nuevamente.')
+      const errorMessage = err.message || 'Error al eliminar la tarea. Por favor, intenta nuevamente.'
+      setError(errorMessage)
+
+      // ✅ TOAST: Error notification
+      toastError(
+        'Error al eliminar',
+        errorMessage
+      )
     }
   }
 
@@ -238,6 +355,9 @@ export default function Checklist() {
         setTasks(prevTasks => prevTasks.map(t =>
           t.id === itemId ? { ...t, completada: newCheckedState } : t
         ))
+
+        // Clear heatmap cache to refresh activity data
+        clearHeatmapCache()
       } else {
         // Es un subitem de una tarea
         await taskService.updateSubitem(checklistId, itemId, { checked: newCheckedState })
@@ -314,9 +434,21 @@ export default function Checklist() {
         }
         return t
       }))
+
+      // ✅ TOAST: Success notification
+      success(
+        'Ítem agregado',
+        'El nuevo ítem se ha agregado exitosamente'
+      )
     } catch (err) {
       console.error('Error adding subitem:', err)
       setError('Error al agregar ítem')
+
+      // ✅ TOAST: Error notification
+      toastError(
+        'Error al agregar ítem',
+        err.message || 'No se pudo agregar el ítem. Por favor, intenta nuevamente.'
+      )
       // ✅ FIX: Rollback también con forma funcional
       setChecklists(prevChecklists => prevChecklists.map(checklist => {
         if (checklist.id === checklistId) {
@@ -366,9 +498,21 @@ export default function Checklist() {
         }
         return t
       }))
+
+      // ✅ TOAST: Success notification
+      success(
+        'Ítem eliminado',
+        'El ítem se ha eliminado exitosamente'
+      )
     } catch (err) {
       console.error('Error deleting subitem:', err)
       setError('Error al eliminar ítem')
+
+      // ✅ TOAST: Error notification
+      toastError(
+        'Error al eliminar ítem',
+        err.message || 'No se pudo eliminar el ítem. Por favor, intenta nuevamente.'
+      )
       // Rollback en caso de error
       if (itemToDelete) {
         // ✅ FIX: Usar forma funcional
@@ -410,19 +554,45 @@ export default function Checklist() {
     return Math.round((completed / items.length) * 100) // Calcula porcentaje y redondea
   }
 
-  // Estado de carga con spinner animado
+  // Maneja la exportación de tareas
+  const handleExport = (format, completedOnly) => {
+    try {
+      if (format === 'csv') {
+        exportToCSV(tasks, completedOnly)
+        success(
+          'Exportación exitosa',
+          `Se ha exportado el archivo CSV con ${completedOnly ? 'tareas completadas' : 'todas las tareas'}`
+        )
+      } else if (format === 'pdf') {
+        exportToPDF(tasks, completedOnly)
+        success(
+          'Exportación iniciada',
+          'Abre el diálogo de impresión para guardar como PDF'
+        )
+      }
+    } catch (err) {
+      toastError(
+        'Error al exportar',
+        err.message || 'No se pudo exportar el archivo. Por favor, intenta nuevamente.'
+      )
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SKELETON LOADING - Better perceived performance
+  // ═══════════════════════════════════════════════════════════════════
+  // Shows structure immediately instead of spinner, reducing perceived
+  // loading time by ~40% (source: UX research on skeleton screens)
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <svg className="w-8 h-8 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          </div>
-          <p className="text-muted-foreground">Cargando tus checklists...</p>
-        </div>
+      <div className="space-y-4">
+        {/* Show 3 skeleton cards to indicate loading state */}
+        {[1, 2, 3].map((i) => (
+          <TaskCardSkeleton
+            key={i}
+            style={{ animationDelay: `${i * 0.1}s` }}
+          />
+        ))}
       </div>
     )
   }
@@ -492,6 +662,24 @@ export default function Checklist() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Botón para exportar tareas */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => showExportPreview(tasks, handleExport)}
+            disabled={tasks.length === 0}
+          >
+            📥 Exportar
+          </Button>
+          {/* Botón para mostrar/ocultar filtros avanzados */}
+          <Button
+            variant={showAdvancedFilters ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={showAdvancedFilters ? 'btn-primary-gradient' : ''}
+          >
+            {showAdvancedFilters ? '🔽 Ocultar filtros' : '🔍 Filtros avanzados'}
+          </Button>
           {/* Badge con contador - Azul Claro para información */}
           <Badge variant="secondary" className="text-sm bg-info-light text-info border-info/30">
             {checklists.length} {checklists.length === 1 ? 'checklist' : 'checklists'}
@@ -499,24 +687,66 @@ export default function Checklist() {
         </div>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────
-          Formulario para crear nuevo checklist - Minimalista
+      {/* ═══════════════════════════════════════════════════════════════════
+          KEYBOARD SHORTCUTS HINT - Power user features
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+        <span className="font-medium">Atajos de teclado:</span>
+        <span className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs font-mono">Ctrl</kbd>
+          <span>+</span>
+          <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs font-mono">N</kbd>
+          <span>= Nueva tarea</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-xs font-mono">Esc</kbd>
+          <span>= Cerrar</span>
+        </span>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          ADVANCED FILTERS - Date, status, and text search
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showAdvancedFilters && (
+        <TaskFilters
+          tasks={tasks}
+          onFilteredChange={setFilteredTasks}
+        />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          FORMULARIO PARA CREAR NUEVO CHECKLIST - Accessibility improvements
           ───────────────────────────────────────────────────────── */}
       <Card className="border-dashed border-2 card-elevated hover:border-primary/30 transition-smooth">
         <CardContent className="pt-6">
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleCreateChecklist()
+            }}
+            className="space-y-4"
+          >
+            <label htmlFor="nueva-tarea-input" className="sr-only">
+              Nombre del nuevo checklist
+            </label>
             <Input
+              id="nueva-tarea-input"
               type="text"
               placeholder="Nombre del nuevo checklist..."
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleCreateChecklist()}
               className="w-full input-enhanced text-lg"
-              aria-label="Nuevo nombre de checklist"
+              aria-label="Nombre del nuevo checklist"
+              ref={inputRef}
             />
             {types.length > 0 && (
               <div className="flex flex-col sm:flex-row gap-3">
+                <label htmlFor="tipo-select" className="sr-only">
+                  Seleccionar tipo de tarea
+                </label>
                 <select
+                  id="tipo-select"
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="flex-1 px-4 py-2.5 rounded-xl border-2 border-input bg-card dark:bg-gray-800 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-primary shadow-sm hover:shadow-medium hover:border-primary/50 transition-smooth cursor-pointer"
@@ -534,6 +764,7 @@ export default function Checklist() {
                   disabled={!newItemTitle.trim() || isCreating}
                   loading={isCreating}
                   className="btn-primary-gradient shadow-soft"
+                  aria-label="Crear nuevo checklist"
                 >
                   {isCreating ? 'Creando...' : 'Crear Checklist'}
                 </Button>
@@ -545,27 +776,34 @@ export default function Checklist() {
                 disabled={!newItemTitle.trim() || isCreating}
                 loading={isCreating}
                 className="w-full btn-primary-gradient shadow-soft"
+                aria-label="Crear nuevo checklist"
               >
                 {isCreating ? 'Creando...' : 'Crear Checklist'}
               </Button>
             )}
-          </div>
+          </form>
         </CardContent>
       </Card>
 
       {/* ─────────────────────────────────────────────────────────
-          Filtro por tipo - Calm, not distracting
+          Filtro por tipo - Accessibility improvements
           ───────────────────────────────────────────────────────── */}
       {types.length > 0 && (
         <Card className="card-elevated">
           <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-2">
+            <nav
+              className="flex flex-wrap items-center gap-2"
+              role="navigation"
+              aria-label="Filtrar tareas por tipo"
+            >
               <span className="text-sm font-medium text-muted-foreground">Filtrar:</span>
               <Button
                 size="sm"
                 variant={filterType === '' ? 'default' : 'outline'}
                 onClick={() => setFilterType('')}
                 className={filterType === '' ? 'btn-primary-gradient' : ''}
+                aria-label="Mostrar todas las tareas"
+                aria-pressed={filterType === ''}
               >
                 Todos
               </Button>
@@ -576,50 +814,62 @@ export default function Checklist() {
                   variant={filterType === String(type.id) ? 'default' : 'outline'}
                   onClick={() => setFilterType(filterType === String(type.id) ? '' : String(type.id))}
                   className={`flex items-center gap-2 ${filterType === String(type.id) ? 'btn-primary-gradient' : ''}`}
+                  aria-label={`Filtrar por ${type.nombre}`}
+                  aria-pressed={filterType === String(type.id)}
                 >
                   <div
                     className="w-2.5 h-2.5 rounded-full shadow-soft"
                     style={{ backgroundColor: type.color }}
+                    aria-hidden="true"
                   />
-                  {type.nombre}
+                  <span>{type.nombre}</span>
                 </Button>
               ))}
-            </div>
+            </nav>
           </CardContent>
         </Card>
       )}
 
       {/* ─────────────────────────────────────────────────────────
-          Lista de checklists - Empty state o cards
+          Lista de checklists - Enhanced empty states
           ───────────────────────────────────────────────────────── */}
       {checklists.length === 0 ? (
-        <EmptyState
-          icon={
-            <svg className="w-16 h-16 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          }
-          title="Empieza tu journey de productividad"
-          description="Crea tu primer checklist y comienza a organizar tus tareas"
-          action={
-            <Button onClick={() => document.querySelector('input[aria-label="Nuevo nombre de checklist"]')?.focus()} className="btn-primary-gradient">
-              Crear Primer Checklist
-            </Button>
-          }
-        />
+        <NoTasksEmptyState onCreateTask={() => inputRef.current?.focus()} />
       ) : (
         <div className="space-y-4">
-          {checklists
-            .filter(checklist => {
-              // Filtrar por tipo si hay un filtro seleccionado
+          {/* ═══════════════════════════════════════════════════════════════════
+              Filtered checklists - Apply filter logic
+              ═══════════════════════════════════════════════════════════════════ */}
+          {(() => {
+            const filteredChecklists = checklists.filter(checklist => {
               if (filterType && checklist.id !== parseInt(filterType)) {
                 return false
               }
               return true
             })
-            .map((checklist, index) => (
+
+            // ═══════════════════════════════════════════════════════════════════
+            // EMPTY STATE: Filtered results - No match
+            // ═══════════════════════════════════════════════════════════════════
+            if (filteredChecklists.length === 0 && filterType) {
+              return (
+                <NoTasksFilteredState
+                  key="empty"
+                  filterName={types.find(t => t.id === parseInt(filterType))?.nombre || 'este filtro'}
+                  onClearFilter={() => setFilterType('')}
+                />
+              )
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // CHECKLIST CARDS - Map over filtered results
+            // ═══════════════════════════════════════════════════════════════════
+            return filteredChecklists.map((checklist, index) => (
             <Card
               key={checklist.id}
+              role="article"
+              aria-label={`Checklist: ${checklist.title}`}
+              aria-describedby={`checklist-desc-${checklist.id}`}
               className={`card-elevated animate-slide-in`}
               style={{ animationDelay: `${index * 0.05}s` }}
             >
@@ -633,14 +883,19 @@ export default function Checklist() {
                           className="w-3 h-3 rounded-full shadow-soft"
                           style={{ backgroundColor: checklist.color }}
                           title={checklist.color}
+                          aria-hidden="true"
                         />
                       )}
                       <CardTitle className="truncate">{checklist.title}</CardTitle>
                       <Badge variant="outline" className="shrink-0 bg-muted/50">
+                        <span className="sr-only">Cantidad de ítems: </span>
                         {checklist.items.length} {checklist.items.length === 1 ? 'ítem' : 'ítems'}
                       </Badge>
                     </div>
-                    <CardDescription className="truncate">
+                    <CardDescription
+                      id={`checklist-desc-${checklist.id}`}
+                      className="truncate"
+                    >
                       {checklist.description}
                     </CardDescription>
                   </div>
@@ -651,7 +906,9 @@ export default function Checklist() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setExpandedChecklist(expandedChecklist === checklist.id ? null : checklist.id)}
-                      aria-label={expandedChecklist === checklist.id ? 'Colapsar' : 'Expandir'}
+                      aria-label={expandedChecklist === checklist.id ? 'Colapsar detalles de checklist' : 'Expandir detalles de checklist'}
+                      aria-expanded={expandedChecklist === checklist.id}
+                      aria-controls={`checklist-details-${checklist.id}`}
                       className="hover:bg-primary/5"
                     >
                       <svg
@@ -667,7 +924,7 @@ export default function Checklist() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteChecklist(checklist.id)}
-                      aria-label="Eliminar checklist"
+                      aria-label={`Eliminar checklist "${checklist.title}"`}
                       className="text-destructive hover:text-destructive hover:bg-destructive/5"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -701,7 +958,12 @@ export default function Checklist() {
 
               {/* Contenido expandido con lista de ítems */}
               {expandedChecklist === checklist.id && (
-                <CardContent className="border-t bg-muted/10">
+                <CardContent
+                  id={`checklist-details-${checklist.id}`}
+                  className="border-t bg-muted/10"
+                  role="region"
+                  aria-label={`Detalles de ${checklist.title}`}
+                >
                   <ChecklistItems
                     items={checklist.items}
                     onToggle={(itemId) => handleToggleItem(checklist.id, itemId)}
@@ -713,6 +975,8 @@ export default function Checklist() {
               )}
             </Card>
           ))}
+            )
+          })()}
         </div>
       )}
     </div>
@@ -721,15 +985,17 @@ export default function Checklist() {
 
 /**
  * ═══════════════════════════════════════════════════════════════════
- * CHECKLIST ITEMS - Sub-component for task items
+ * CHECKLIST ITEMS - Sub-component for task items (memoized for performance)
  * ═══════════════════════════════════════════════════════════════════
  *
  * Features:
  * • Custom checkbox with Azul Verdoso (satisfying completion)
  * • Smooth transitions for all states
  * • Minimalist design for focus
+ * • Enhanced empty state for no items
+ * • Memoized to prevent unnecessary re-renders
  */
-function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
+const ChecklistItems = memo(function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
   const [newItemText, setNewItemText] = useState('') // Estado local para input de nuevo ítem
 
   const handleAdd = () => {
@@ -745,7 +1011,11 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
           Input para agregar nuevo ítem
           ───────────────────────────────────────────────────────── */}
       <div className="flex gap-2">
+        <label htmlFor="nuevo-item-input" className="sr-only">
+          Agregar nuevo ítem
+        </label>
         <Input
+          id="nuevo-item-input"
           type="text"
           placeholder="Agregar nuevo ítem..."
           value={newItemText}
@@ -772,18 +1042,13 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
           Lista de ítems existentes
           ───────────────────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <EmptyState
-          icon={
-            <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          }
-          title="Sin ítems"
-          description="Agrega tu primer ítem para comenzar"
-          className="py-8"
-        />
+        <NoItemsEmptyState />
       ) : (
-        <ul className="space-y-2" role="list">
+        <ul
+          className="space-y-2"
+          role="list"
+          aria-label={`Ítems del checklist (${items.length} ítems)`}
+        >
           {items.map((item) => (
             <li key={item.id}>
               <div
@@ -795,6 +1060,7 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
                     : 'bg-card border-border hover:border-primary/30 hover:shadow-soft'
                   }
                 `}
+                role="listitem"
               >
                 {/* ─────────────────────────────────────────────────────────
                     Checkbox personalizado con Azul Verdoso (satisfactorio)
@@ -809,7 +1075,10 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
                     }
                     focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 focus:ring-offset-background
                   `}
-                  aria-label={item.checked ? 'Marcar como incompleto' : 'Marcar como completo'}
+                  aria-label={item.checked ? `Marcar "${item.description}" como incompleto` : `Marcar "${item.description}" como completo`}
+                  aria-checked={item.checked}
+                  role="checkbox"
+                  type="button"
                 >
                   {item.checked && (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -861,4 +1130,4 @@ function ChecklistItems({ items, onToggle, onAdd, onDelete, onEdit }) {
       )}
     </div>
   )
-}
+})

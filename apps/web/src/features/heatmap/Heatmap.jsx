@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react' // Importa hooks de React incluyendo useMemo para optimización
+import React, { useState, useEffect, useMemo, useCallback } from 'react' // Importa hooks de React incluyendo useMemo y useCallback para optimización
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, Button, EmptyState } from '@checklist/ui'
+import heatmapService from '../../services/heatmapService'
+import { getHeatmapStats } from '../../services/heatmapService'
 
 export default function Heatmap() {
   // Estados para gestionar la vista y datos del heatmap
@@ -7,49 +9,27 @@ export default function Heatmap() {
   const [error, setError] = useState(null) // Almacena mensajes de error
   const [viewMode, setViewMode] = useState('weekly') // 'weekly' para vista de 12 meses, 'monthly' para vista mensual
   const [selectedPeriod, setSelectedPeriod] = useState(new Date()) // Período seleccionado (para navegación futura)
+  const [activityData, setActivityData] = useState([]) // Datos reales de actividad
+
+  // Función para cargar datos del heatmap (usando useCallback para evitar recreaciones)
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Obtener datos reales del servicio
+      const data = await heatmapService.getHeatmapData(365) // Últimos 365 días
+      setActivityData(data)
+    } catch (err) {
+      setError('Error al cargar los datos del heatmap. Por favor, intenta nuevamente.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // Efecto para cargar datos iniciales del heatmap
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        // Simula llamada a API con delay de 600ms
-        await new Promise(resolve => setTimeout(resolve, 600))
-      } catch (err) {
-        setError('Error al cargar los datos del heatmap. Por favor, intenta nuevamente.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadData()
-  }, [])
-
-  // Genera datos simulados de actividad para los últimos 365 días
-  // useMemo evita recalcular en cada renderizado, optimizando rendimiento
-  const activityData = useMemo(() => {
-    const data = []
-    const today = new Date()
-
-    // Itera desde 364 días atrás hasta hoy (365 días totales)
-    for (let i = 364; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i) // Calcula fecha específica
-
-      // Genera nivel de actividad aleatorio (0-4): 0=sin actividad, 4=máxima actividad
-      const level = Math.floor(Math.random() * 5)
-      const count = level === 0 ? 0 : Math.floor(Math.random() * (level * 5)) + 1 // Cantidad de tareas según nivel
-
-      data.push({
-        date: date.toISOString(), // Formato ISO para almacenamiento
-        dateObj: date, // Objeto Date para comparaciones
-        level, // Nivel visual de actividad
-        count, // Cantidad numérica de tareas
-      })
-    }
-
-    return data
-  }, []) // Array vacío: solo se calcula una vez al montar
+  }, [loadData])
 
   // Genera datos estructurados para vista semanal (estilo GitHub contribution graph)
   const weeklyData = useMemo(() => {
@@ -121,42 +101,10 @@ export default function Heatmap() {
     }
   }, [activityData])
 
-  // Calcula estadísticas agregadas de la actividad
+  // Calcula estadísticas agregadas de la actividad usando el servicio
   const stats = useMemo(() => {
-    const totalDays = activityData.length
-    const activeDays = activityData.filter(d => d.level > 0).length // Días con alguna actividad
-    const totalTasks = activityData.reduce((sum, d) => sum + d.count, 0) // Suma total de tareas
-    const currentStreak = calculateStreak(activityData) // Racha actual de días consecutivos
-
-    return {
-      totalDays,
-      activeDays,
-      totalTasks,
-      currentStreak,
-      activityRate: Math.round((activeDays / totalDays) * 100), // Porcentaje de días activos
-    }
+    return getHeatmapStats(activityData)
   }, [activityData])
-
-  // Función para calcular racha actual de días con actividad
-  function calculateStreak(data) {
-    let streak = 0
-    const today = new Date()
-
-    // Recorre desde hoy hacia atrás contando días consecutivos con actividad
-    for (let i = 0; i < data.length; i++) {
-      const item = data[i]
-      const diffTime = Math.abs(today - item.dateObj)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) // Diferencia en días
-
-      if (diffDays === i && item.level > 0) {
-        streak++ // Incrementa si es día consecutivo con actividad
-      } else if (diffDays === i && item.level === 0) {
-        break // Rompe racha al encontrar día sin actividad
-      }
-    }
-
-    return streak
-  }
 
 // Mapea niveles de actividad a clases de color CSS
   function getActivityColor(level) {
@@ -215,7 +163,10 @@ export default function Heatmap() {
                 variant="outline"
                 size="sm"
                 className="mt-3"
-                onClick={() => window.location.reload()} // Recarga página para reintentar
+                onClick={() => {
+                  setError(null)
+                  loadData() // Reintentar cargando datos nuevamente
+                }}
               >
                 Reintentar
               </Button>

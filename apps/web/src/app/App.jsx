@@ -1,13 +1,36 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import Checklist from '../features/checklist/Checklist'
-import Heatmap from '../features/heatmap/Heatmap'
-import TypeManagement from '../features/types/TypeManagement'
 import Login from '../features/auth/Login'
 import Register from '../features/auth/Register'
 import Sidebar from '../components/Sidebar'
+import SkipLink from '../components/common/SkipLink'
+import { ToastProvider, useToast } from '../contexts/ToastContext'
+import ToastContainer from '../components/ui/ToastContainer'
 import authService from '../services/authService'
+import { useTheme } from '../hooks/useTheme'
 import sprite from '../../../../packages/lib/sprite.svg'
+
+// Lazy load components for better performance
+const Checklist = lazy(() => import('../features/checklist/Checklist'))
+const Heatmap = lazy(() => import('../features/heatmap/Heatmap'))
+const TypeManagement = lazy(() => import('../features/types/TypeManagement'))
+
+// Skeleton loader component
+function ViewSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="animate-pulse">
+        <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+        <div className="h-4 bg-muted rounded w-1/4 mb-8"></div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 bg-muted rounded-lg"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Configuración de pestañas de navegación
 const tabs = [
@@ -16,20 +39,23 @@ const tabs = [
   { id: 'types', label: 'Tipos', icon: '🏷️' },
 ]
 
-const themes = ["light", "dark"]
-
 // Componente principal del layout con navegación
 function MainLayout() {
   const [view, setView] = useState('checklist')
   const [mounted, setMounted] = useState(false)
-  const [theme, setTheme] = useState(themes[0])
+  const { theme, effectiveTheme, toggleTheme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   return (
-    <div className={`mx-auto flex flex-col min-h-dvh bg-background text-foreground ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="mx-auto flex flex-col min-h-dvh bg-background text-foreground">
+      {/* ═══════════════════════════════════════════════════════════════════
+          SKIP LINK - Accessibility for keyboard navigation (WCAG 2.1 AA)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <SkipLink href="#main-content">Saltar al contenido principal</SkipLink>
+
       {/* Sidebar */}
       <Sidebar />
 
@@ -54,11 +80,18 @@ function MainLayout() {
               {/* Theme toggle */}
               <div className='flex items-center'>
                 <button
-                  onClick={() => setTheme(theme === themes[0] ? themes[1] : themes[0])}
-                  className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
-                  aria-label="Cambiar tema"
+                  onClick={toggleTheme}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors transition-transform hover:scale-105"
+                  aria-label={`Cambiar tema. Actual: ${theme === 'auto' ? 'Automático' : theme === 'light' ? 'Claro' : 'Oscuro'}`}
+                  title={`Modo actual: ${theme === 'auto' ? 'Automático (sigue al sistema)' : theme === 'light' ? 'Claro' : 'Oscuro'}. Click para cambiar.`}
                 >
-                  {theme === themes[0] ? '🌙' : '☀️'}
+                  <span className="text-base" role="img" aria-label="icono de tema">
+                    {effectiveTheme === 'light' ? '🌙' : '☀️'}
+                    {theme === 'auto' && <span className="text-xs ml-1">🔄</span>}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {theme === 'auto' ? 'Auto' : effectiveTheme === 'light' ? 'Oscuro' : 'Claro'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -101,16 +134,23 @@ function MainLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="container flex-grow mx-auto px-4 py-8 max-w-6xl pl-20">
+      <main
+        id="main-content"
+        role="main"
+        aria-label="Contenido principal"
+        className="container flex-grow mx-auto px-4 py-8 max-w-6xl pl-20"
+      >
         <div
           id={`${view}-panel`}
           role="tabpanel"
           aria-labelledby={`${view}-tab`}
           className={mounted ? 'animate-fade-in' : ''}
         >
-          {view === 'checklist' && <Checklist />}
-          {view === 'heatmap' && <Heatmap />}
-          {view === 'types' && <TypeManagement />}
+          <Suspense fallback={<ViewSkeleton />}>
+            {view === 'checklist' && <Checklist />}
+            {view === 'heatmap' && <Heatmap />}
+            {view === 'types' && <TypeManagement />}
+          </Suspense>
         </div>
       </main>
 
@@ -129,13 +169,26 @@ function MainLayout() {
 // App principal con rutas (autenticación opcional)
 export default function App() {
   return (
-    <Routes>
-      {/* Rutas de autenticación */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <ToastProvider>
+      <Routes>
+        {/* Rutas de autenticación */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* Ruta principal: accesible sin autenticación */}
-      <Route path="/*" element={<MainLayout />} />
-    </Routes>
+        {/* Ruta principal: accesible sin autenticación */}
+        <Route path="/*" element={
+          <>
+            <MainLayout />
+            <ToastContainerWrapper />
+          </>
+        } />
+      </Routes>
+    </ToastProvider>
   )
+}
+
+// Wrapper componente to render ToastContainer with context access
+function ToastContainerWrapper() {
+  const { toasts, removeToast } = useToast()
+  return <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 }
