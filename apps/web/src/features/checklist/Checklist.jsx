@@ -649,6 +649,14 @@ export default function Checklist() {
     )
   }
 
+  // Filtrar checklists según tipo seleccionado (computed value)
+  const filteredChecklists = checklists.filter(checklist => {
+    if (filterType && checklist.id !== parseInt(filterType)) {
+      return false
+    }
+    return true
+  })
+
   return (
     <div className="space-y-6">
       {/* ─────────────────────────────────────────────────────────
@@ -842,31 +850,17 @@ export default function Checklist() {
           {/* ═══════════════════════════════════════════════════════════════════
               Filtered checklists - Apply filter logic
               ═══════════════════════════════════════════════════════════════════ */}
-          {(() => {
-            const filteredChecklists = checklists.filter(checklist => {
-              if (filterType && checklist.id !== parseInt(filterType)) {
-                return false
-              }
-              return true
-            })
-
-            // ═══════════════════════════════════════════════════════════════════
-            // EMPTY STATE: Filtered results - No match
-            // ═══════════════════════════════════════════════════════════════════
-            if (filteredChecklists.length === 0 && filterType) {
-              return (
-                <NoTasksFilteredState
-                  key="empty"
-                  filterName={types.find(t => t.id === parseInt(filterType))?.nombre || 'este filtro'}
-                  onClearFilter={() => setFilterType('')}
-                />
-              )
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // CHECKLIST CARDS - Map over filtered results
-            // ═══════════════════════════════════════════════════════════════════
-            return filteredChecklists.map((checklist, index) => (
+          {/* ═══════════════════════════════════════════════════════════════════
+              EMPTY STATE: Filtered results - No match
+              ═══════════════════════════════════════════════════════════════════ */}
+          {filteredChecklists.length === 0 && filterType ? (
+            <NoTasksFilteredState
+              key="empty"
+              filterName={types.find(t => t.id === parseInt(filterType))?.nombre || 'este filtro'}
+              onClearFilter={() => setFilterType('')}
+            />
+          ) : (
+            filteredChecklists.map((checklist, index) => (
             <Card
               key={checklist.id}
               role="article"
@@ -976,9 +970,8 @@ export default function Checklist() {
                 </CardContent>
               )}
             </Card>
-          ))}
-            )
-          })()}
+          ))
+          )}
         </div>
       )}
     </div>
